@@ -1,0 +1,17 @@
+{
+    "name": "api-schema",
+    "version": "1.0.0",
+    "description": "",
+    "main": "api.d.ts",
+    "types": "api.d.ts",
+    "scripts": {
+        "typegen": "openapi-typescript http://localhost:8080/apidoc/openapi.json -o ./api.d.ts"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "packageManager": "pnpm@10.10.0",
+    "devDependencies": {
+        "openapi-typescript": "^7.8.0"
+    }
+}
