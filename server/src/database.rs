@@ -78,10 +78,35 @@ pub struct RecoveryCodeFactor {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct GPGFactor {
+    pub public_key: String,
+    pub fingerprint: String,
+    pub display_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct TwoFactor {
-    totp: Option<TOTPFactor>,
-    webauthn: Option<WebAuthnFactor>,
-    recovery_codes: Vec<RecoveryCodeFactor>,
+    pub totp: Option<TOTPFactor>,
+    pub webauthn: Vec<WebAuthnFactor>,
+    pub recovery_codes: Vec<RecoveryCodeFactor>,
+    pub gpg: Vec<GPGFactor>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum FirstFactor {
+    Password,
+    WebAuthn,
+    Gpg,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum SecondFactor {
+    Totp,
+    WebAuthn,
+    RecoveryCode,
+    Gpg,
 }
 
 database_object!(User {
@@ -95,5 +120,6 @@ database_object!(User {
     display_name: String,
     preferred_username: String,
     email: String,
+    password_hash: Option<String>,
     two_factor: TwoFactor,
 });
