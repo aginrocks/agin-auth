@@ -2831,6 +2831,7 @@ dependencies = [
  "utoipa-rapidoc",
  "utoipa-redoc",
  "utoipa-scalar",
+ "uuid",
  "validator",
  "visible",
 ]
