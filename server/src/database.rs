@@ -123,3 +123,25 @@ database_object!(User {
     password_hash: Option<String>,
     two_factor: TwoFactor,
 });
+
+pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
+    let mut second_factors = vec![];
+
+    if !user.two_factor.webauthn.is_empty() {
+        second_factors.push(SecondFactor::WebAuthn);
+    }
+
+    if user.two_factor.totp.is_some() {
+        second_factors.push(SecondFactor::Totp);
+    }
+
+    if !user.two_factor.gpg.is_empty() {
+        second_factors.push(SecondFactor::Gpg);
+    }
+
+    if !user.two_factor.recovery_codes.is_empty() {
+        second_factors.push(SecondFactor::RecoveryCode);
+    }
+
+    second_factors
+}
