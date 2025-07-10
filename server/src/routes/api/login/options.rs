@@ -51,7 +51,11 @@ async fn get_login_options(
 
     if user.is_none() {
         return Ok(Json(OptionsRepsonse {
-            options: vec![FirstFactor::Password],
+            options: vec![
+                FirstFactor::Password,
+                FirstFactor::WebAuthn,
+                FirstFactor::Gpg,
+            ],
         }));
     }
 
