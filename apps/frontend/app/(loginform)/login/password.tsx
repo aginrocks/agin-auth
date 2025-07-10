@@ -1,6 +1,6 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@components/ui/form';
 import { LoginIcon } from '@components/ui/login-icon';
-import { IconArrowRight, IconKey } from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconKey, IconPassword } from '@tabler/icons-react';
 import { useFormContext } from 'react-hook-form';
 import { FormSchema, screenAtom } from './page';
 import { Input } from '@components/ui/input';
@@ -12,17 +12,22 @@ import { Separator } from '@components/ui/separator';
 import { useSetAtom } from 'jotai';
 import { optionsAtom } from './login-options';
 
-export function Welcome() {
+export function Password() {
     const setScreen = useSetAtom(screenAtom);
-    const setOptions = useSetAtom(optionsAtom);
 
     const form = useFormContext<FormSchema>();
 
-    const loginOptions = $api.useMutation('get', '/api/login/options', {
-        onSuccess: ({ options }) => {
-            setOptions(options);
-            if (options.length === 1) return setScreen(options[0]);
-            setScreen('login-options');
+    const username = form.watch('username');
+
+    const passwordLogin = $api.useMutation('post', '/api/login/password', {
+        onSuccess: ({ two_factor_required, second_factors }) => {
+            // if (options.length === 1) return setScreen(options[0]);
+            // setScreen('login-options');
+        },
+        onError: (e) => {
+            form.setError('password', {
+                message: e?.error || 'Login failed.',
+            });
         },
     });
 
@@ -30,34 +35,35 @@ export function Welcome() {
         <form
             className="flex flex-col items-center"
             onSubmit={form.handleSubmit((data) =>
-                loginOptions.mutate({
-                    params: {
-                        query: {
-                            username: data.username,
-                        },
+                passwordLogin.mutate({
+                    body: {
+                        username: data.username,
+                        password: data.password ?? '',
                     },
                 })
             )}
         >
             <LoginIcon>
-                <IconKey />
+                <IconPassword />
             </LoginIcon>
             <div className="mt-4 flex flex-col gap-1">
-                <h1 className="font-semibold text-xl text-center">Sign in to Agin</h1>
+                <h1 className="font-semibold text-xl text-center">Enter Your Password</h1>
                 <p className="text-sm text-center text-muted-foreground">
-                    Welcome back! Please sign in to continue
+                    Logging in as {username}{' '}
+                    <LinkComponent onClick={() => setScreen('welcome')}>Not you?</LinkComponent>
                 </p>
             </div>
             <div className="w-sm mt-6 flex flex-col gap-4">
                 <FormField
                     control={form.control}
-                    name="username"
+                    name="password"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Username or Email</FormLabel>
+                            <FormLabel>Password</FormLabel>
                             <FormControl>
                                 <Input
-                                    placeholder="Enter your username or email"
+                                    placeholder="Enter your password"
+                                    type="password"
                                     autoFocus
                                     {...field}
                                 />
@@ -66,24 +72,12 @@ export function Welcome() {
                         </FormItem>
                     )}
                 />
-                <Button type="submit" disabled={loginOptions.isPending}>
+                <Button type="submit" disabled={passwordLogin.isPending}>
                     Next <IconArrowRight />
                 </Button>
-                <div className="flex items-center gap-2 pointer-events-none">
-                    <Separator className="flex-1" />
-                    <div className="text-xs text-muted-foreground font-semibold">OR</div>
-                    <Separator className="flex-1" />
-                </div>
-                <div className="flex flex-col gap-3">
-                    <Button variant="outline" type="button">
-                        <IconKey />
-                        Use a security key
-                    </Button>
-                </div>
                 <div className="text-muted-foreground text-center text-sm">
-                    Don't have an account?{' '}
                     <LinkComponent>
-                        <Link href="/register">Sign Up</Link>
+                        <Link href="/register">Forgot Password?</Link>
                     </LinkComponent>
                 </div>
             </div>

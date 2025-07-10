@@ -2,8 +2,10 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@compo
 import { LoginIcon } from '@components/ui/login-icon';
 import {
     IconArrowRight,
+    IconClock,
     IconFingerprint,
     IconKey,
+    IconLifebuoy,
     IconPassword,
     IconShieldLock,
 } from '@tabler/icons-react';
@@ -19,20 +21,27 @@ import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { paths } from 'api-schema';
 import { LoginOption, LoginOptionProps } from '@components/ui/login-option';
 
-export type TLoginOption =
-    paths['/api/login/options']['get']['responses']['200']['content']['application/json']['options'][number];
+export type TLoginOption = Exclude<
+    paths['/api/login/password']['post']['responses']['200']['content']['application/json']['second_factors'],
+    undefined | null
+>[number];
 
 export const optionsAtom = atom<TLoginOption[]>();
 
 export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
-    password: {
-        title: 'Password',
-        icon: IconPassword,
-        rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
-    },
     webauthn: {
         title: 'Security key / Passkey',
         icon: IconFingerprint,
+        rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
+    },
+    totp: {
+        title: 'One-time Code',
+        icon: IconClock,
+        rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
+    },
+    recoverycode: {
+        title: 'Recovery Code',
+        icon: IconLifebuoy,
         rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
     },
     gpg: {
@@ -42,7 +51,7 @@ export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
     },
 };
 
-export function LoginOptions() {
+export function TwoFactorOptions() {
     const setScreen = useSetAtom(screenAtom);
     const options = useAtomValue(optionsAtom);
 
@@ -52,9 +61,11 @@ export function LoginOptions() {
                 <IconShieldLock />
             </LoginIcon>
             <div className="mt-4 flex flex-col gap-1">
-                <h1 className="font-semibold text-xl text-center">Choose Authentication Method</h1>
+                <h1 className="font-semibold text-xl text-center">
+                    Continue with Two-Factor Authentication
+                </h1>
                 <p className="text-sm text-center text-muted-foreground">
-                    Select how you'd like to verify your identity to continue
+                    Select a method to verify your identity
                 </p>
             </div>
             <div className="w-sm mt-6 flex flex-col gap-3">
