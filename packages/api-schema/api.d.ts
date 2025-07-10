@@ -21,10 +21,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/login/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get login options
+         * @description Gets available login options for the user. If the user is not found, returns only password option.
+         */
+        get: operations["get_login_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with password
+         * @description If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.
+         */
+        post: operations["login_with_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register */
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /** @example {
+         *       "error": "User with this username or email already existsd"
+         *     } */
+        BadRequestError: {
+            error: string;
+        };
+        /** @example {
+         *       "success": true,
+         *       "id": "60c72b2f9b1d8c001c8e4f5a"
+         *     } */
+        CreateSuccess: {
+            id: string;
+            success: boolean;
+        };
+        /** @enum {string} */
+        FirstFactor: "password" | "webauthn" | "gpg";
+        /** @example {
+         *       "error": "Invalid username or password"
+         *     } */
+        InvaludUserOrPass: {
+            error: string;
+        };
+        LoginBody: {
+            password: string;
+            username: string;
+        };
+        LoginResponse: {
+            second_factors?: components["schemas"]["SecondFactor"][] | null;
+            two_factor_required: boolean;
+        };
+        OptionsRepsonse: {
+            options: components["schemas"]["FirstFactor"][];
+        };
+        RegisterBody: {
+            display_name: string;
+            email: string;
+            first_name: string;
+            last_name: string;
+            password: string;
+            preferred_username: string;
+        };
+        /** @enum {string} */
+        SecondFactor: "totp" | "webauthn" | "recoverycode" | "gpg";
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -49,6 +150,95 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+        };
+    };
+    get_login_options: {
+        parameters: {
+            query: {
+                /** @description Username or email address of the user the factors are requested for */
+                username: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptionsRepsonse"];
+                };
+            };
+        };
+    };
+    login_with_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvaludUserOrPass"];
+                };
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSuccess"];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestError"];
                 };
             };
         };
