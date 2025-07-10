@@ -1,12 +1,14 @@
-use axum::Json;
+use axum::{Extension, Json, extract::Query};
 use mongodb::bson::doc;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::routes;
 
 use crate::{
-    axum_error::AxumResult, database::FirstFactor,
-    extractors::unauthenticated_user::UnauthenticatedUser, routes::RouteProtectionLevel,
+    axum_error::AxumResult,
+    database::{FirstFactor, get_user},
+    routes::RouteProtectionLevel,
+    state::AppState,
 };
 
 use super::Route;
@@ -22,6 +24,11 @@ struct OptionsRepsonse {
     options: Vec<FirstFactor>,
 }
 
+#[derive(Deserialize, ToSchema)]
+struct OptionsQuery {
+    username: String,
+}
+
 /// Get login options
 ///
 /// Gets available login options for the user. If the user is not found, returns only password option.
@@ -32,13 +39,16 @@ struct OptionsRepsonse {
         ("username" = String, Query, description = "Username or email address of the user the factors are requested for"),
     ),
     responses(
-        (status = OK, description = "Success", body = OptionsRepsonse)
+        (status = OK, description = "Success", body = OptionsRepsonse, content_type = "application/json")
     ),
     tag = "Login"
 )]
 async fn get_login_options(
-    UnauthenticatedUser(user): UnauthenticatedUser,
+    Extension(state): Extension<AppState>,
+    Query(OptionsQuery { username }): Query<OptionsQuery>,
 ) -> AxumResult<Json<OptionsRepsonse>> {
+    let user = get_user(&state.database, &username).await?;
+
     if user.is_none() {
         return Ok(Json(OptionsRepsonse {
             options: vec![FirstFactor::Password],

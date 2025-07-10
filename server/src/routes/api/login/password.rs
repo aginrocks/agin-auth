@@ -2,21 +2,19 @@ use argon2::{
     Argon2, PasswordHash, PasswordVerifier,
     password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
-use axum::Json;
-use base64::{Engine, engine::general_purpose};
+use axum::{Extension, Json};
 use color_eyre::eyre;
-use color_eyre::eyre::Context;
 use mongodb::bson::doc;
-use rand::RngCore;
 use serde::{Deserialize, Serialize};
+use tower_sessions::Session;
 use utoipa::ToSchema;
 use utoipa_axum::routes;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{FirstFactor, SecondFactor, get_second_factors},
-    extractors::unauthenticated_user::UnauthenticatedUser,
-    routes::RouteProtectionLevel,
+    database::{SecondFactor, get_second_factors, get_user},
+    routes::{RouteProtectionLevel, api::AuthState},
+    state::AppState,
 };
 
 use super::Route;
@@ -34,30 +32,37 @@ struct LoginBody {
 }
 
 #[derive(Serialize, ToSchema)]
-#[serde(tag = "two_factor_required")]
-enum LoginResponse {
-    False,
-    True { second_factors: Vec<SecondFactor> },
+struct LoginResponse {
+    two_factor_required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    second_factors: Option<Vec<SecondFactor>>,
 }
 
-/// Get login options
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"error": "Invalid username or password"}))]
+pub struct InvaludUserOrPass {
+    error: String,
+}
+
+/// Log in with password
 ///
-/// Gets available login options for the user. If the user is not found, returns only password option.
+/// If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.
 #[utoipa::path(
     method(post),
     path = PATH,
-    params(
-        ("username" = String, Query, description = "Username or email address of the user the factors are requested for"),
-    ),
     responses(
-        (status = OK, description = "Success", body = LoginResponse)
+        (status = OK, description = "Success", body = LoginResponse, content_type = "application/json"),
+        (status = UNAUTHORIZED, description = "Unauthorized", body = InvaludUserOrPass, content_type = "application/json"),
     ),
     tag = "Login"
 )]
 async fn login_with_password(
-    UnauthenticatedUser(user): UnauthenticatedUser,
+    Extension(state): Extension<AppState>,
+    session: Session,
     Json(body): Json<LoginBody>,
 ) -> AxumResult<Json<LoginResponse>> {
+    let user = get_user(&state.database, &body.username).await?;
+
     // Hashing the password in order to prevent timing attacks
     if user.is_none() || user.clone().unwrap().password_hash.is_none() {
         let salt = SaltString::generate(&mut OsRng);
@@ -84,11 +89,27 @@ async fn login_with_password(
         .verify_password(body.password.as_bytes(), &parsed_hash)
         .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid username or password")))?;
 
+    session.insert("user_id", user.id).await?;
+
     let second_factors = get_second_factors(&user);
 
     if second_factors.is_empty() {
-        return Ok(Json(LoginResponse::False));
+        session
+            .insert("auth_state", AuthState::Authenticated)
+            .await?;
+
+        return Ok(Json(LoginResponse {
+            two_factor_required: false,
+            second_factors: None,
+        }));
     }
 
-    Ok(Json(LoginResponse::True { second_factors }))
+    session
+        .insert("auth_state", AuthState::BeforeTwoFactor)
+        .await?;
+
+    Ok(Json(LoginResponse {
+        two_factor_required: true,
+        second_factors: Some(second_factors),
+    }))
 }

@@ -84,7 +84,7 @@ pub struct GPGFactor {
     pub display_name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
 pub struct TwoFactor {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
@@ -123,6 +123,21 @@ database_object!(User {
     password_hash: Option<String>,
     two_factor: TwoFactor,
 });
+
+pub async fn get_user(
+    database: &Database,
+    username_or_email: &str,
+) -> std::result::Result<Option<User>, mongodb::error::Error> {
+    database
+        .collection::<User>("users")
+        .find_one(doc! {
+            "$or": [
+                { "preferred_username": username_or_email },
+                { "email": username_or_email }
+            ]
+        })
+        .await
+}
 
 pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     let mut second_factors = vec![];

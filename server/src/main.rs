@@ -6,6 +6,7 @@ mod mongo_id;
 mod routes;
 mod settings;
 mod state;
+mod validators;
 
 use std::{net::SocketAddr, sync::Arc};
 
