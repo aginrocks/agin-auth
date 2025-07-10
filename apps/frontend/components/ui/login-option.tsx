@@ -2,7 +2,7 @@ import { cn } from '@lib/utils';
 import { Icon } from '@tabler/icons-react';
 import React from 'react';
 
-export type LoginOptionProps = React.ComponentProps<'div'> & {
+export type LoginOptionProps = React.ComponentProps<'button'> & {
     title?: string;
     description?: string;
     rightSection?: React.ReactNode;
@@ -23,9 +23,10 @@ export function LoginOption({
     ...props
 }: LoginOptionProps) {
     return (
-        <div
+        <button
             className={cn(
                 'p-4 rounded-lg flex justify-between items-center border mt-4 gap-2',
+                'transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
                 clickable && 'cursor-pointer hover:bg-card/50',
                 selected && 'border-transparent outline-2 outline-primary -outline-offset-1',
                 className
@@ -43,6 +44,6 @@ export function LoginOption({
                 </div>
             </div>
             <div>{rightSection}</div>
-        </div>
+        </button>
     );
 }
