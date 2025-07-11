@@ -14,7 +14,7 @@ use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{PartialUser, User},
+    database::{AuthFactors, PartialUser, PasswordFactor, User},
     routes::{RouteProtectionLevel, api::CreateSuccess},
     state::AppState,
     validators::username_validator,
@@ -108,8 +108,12 @@ async fn register(
         display_name: body.display_name,
         preferred_username: body.preferred_username,
         email: body.email,
-        password_hash: Some(hashed_password.to_string()),
-        two_factor: Default::default(),
+        auth_factors: AuthFactors {
+            password: PasswordFactor {
+                password_hash: Some(hashed_password.to_string()),
+            },
+            ..Default::default()
+        },
     };
 
     let inserted = state

@@ -63,12 +63,29 @@ pub struct TOTPFactor {
     pub display_name: String,
 }
 
+impl TOTPFactor {
+    pub fn to_public(&self) -> PublicTOTPFactor {
+        PublicTOTPFactor {
+            display_name: self.display_name.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct WebAuthnFactor {
     #[schema(value_type = String)]
     pub credential_id: Uuid,
     pub public_key: String,
     pub display_name: String,
+}
+
+impl WebAuthnFactor {
+    pub fn to_public(&self) -> PublicWebAuthnFactor {
+        PublicWebAuthnFactor {
+            credential_id: self.credential_id,
+            display_name: self.display_name.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
@@ -85,11 +102,86 @@ pub struct GPGFactor {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
-pub struct TwoFactor {
+pub struct PasswordFactor {
+    pub password_hash: Option<String>,
+}
+
+impl GPGFactor {
+    pub fn to_public(&self) -> PublicGPGFactor {
+        PublicGPGFactor {
+            fingerprint: self.fingerprint.clone(),
+            display_name: self.display_name.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
+pub struct AuthFactors {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
     pub recovery_codes: Vec<RecoveryCodeFactor>,
     pub gpg: Vec<GPGFactor>,
+    pub password: PasswordFactor,
+}
+
+impl AuthFactors {
+    pub fn to_public(&self) -> PublicAuthFactors {
+        let remaining_recovery_codes =
+            self.recovery_codes.iter().filter(|code| !code.used).count() as u8;
+
+        PublicAuthFactors {
+            totp: self.totp.clone().map(|factor| factor.to_public()),
+            webauthn: self
+                .webauthn
+                .iter()
+                .map(|factor| factor.to_public())
+                .collect(),
+            recovery_codes: PublicRecoveryCodeFactor {
+                remaining_codes: remaining_recovery_codes,
+            },
+            gpg: self.gpg.iter().map(|factor| factor.to_public()).collect(),
+            password: PublicPasswordFactor {
+                is_set: self.password.password_hash.is_some(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicTOTPFactor {
+    pub display_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicPasswordFactor {
+    pub is_set: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicWebAuthnFactor {
+    #[schema(value_type = String)]
+    pub credential_id: Uuid,
+    pub display_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicRecoveryCodeFactor {
+    pub remaining_codes: u8,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicGPGFactor {
+    pub fingerprint: String,
+    pub display_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicAuthFactors {
+    pub totp: Option<PublicTOTPFactor>,
+    pub webauthn: Vec<PublicWebAuthnFactor>,
+    pub recovery_codes: PublicRecoveryCodeFactor,
+    pub gpg: Vec<PublicGPGFactor>,
+    pub password: PublicPasswordFactor,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
@@ -120,8 +212,7 @@ database_object!(User {
     display_name: String,
     preferred_username: String,
     email: String,
-    password_hash: Option<String>,
-    two_factor: TwoFactor,
+    auth_factors: AuthFactors,
 });
 
 pub async fn get_user(
@@ -142,19 +233,19 @@ pub async fn get_user(
 pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     let mut second_factors = vec![];
 
-    if !user.two_factor.webauthn.is_empty() {
+    if !user.auth_factors.webauthn.is_empty() {
         second_factors.push(SecondFactor::WebAuthn);
     }
 
-    if user.two_factor.totp.is_some() {
+    if user.auth_factors.totp.is_some() {
         second_factors.push(SecondFactor::Totp);
     }
 
-    if !user.two_factor.gpg.is_empty() {
+    if !user.auth_factors.gpg.is_empty() {
         second_factors.push(SecondFactor::Gpg);
     }
 
-    if !user.two_factor.recovery_codes.is_empty() {
+    if !user.auth_factors.recovery_codes.is_empty() {
         second_factors.push(SecondFactor::RecoveryCode);
     }
 

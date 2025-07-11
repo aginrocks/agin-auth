@@ -40,7 +40,7 @@ struct LoginResponse {
 
 #[derive(Serialize, ToSchema)]
 #[schema(example = json!({"error": "Invalid username or password"}))]
-pub struct InvaludUserOrPass {
+pub struct InvalidUserOrPass {
     error: String,
 }
 
@@ -52,7 +52,7 @@ pub struct InvaludUserOrPass {
     path = PATH,
     responses(
         (status = OK, description = "Success", body = LoginResponse, content_type = "application/json"),
-        (status = UNAUTHORIZED, description = "Unauthorized", body = InvaludUserOrPass, content_type = "application/json"),
+        (status = UNAUTHORIZED, description = "Unauthorized", body = InvalidUserOrPass, content_type = "application/json"),
     ),
     tag = "Login"
 )]
@@ -64,7 +64,15 @@ async fn login_with_password(
     let user = get_user(&state.database, &body.username).await?;
 
     // Hashing the password in order to prevent timing attacks
-    if user.is_none() || user.clone().unwrap().password_hash.is_none() {
+    if user.is_none()
+        || user
+            .clone()
+            .unwrap()
+            .auth_factors
+            .password
+            .password_hash
+            .is_none()
+    {
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
 
@@ -79,7 +87,7 @@ async fn login_with_password(
 
     let user = user.unwrap();
 
-    let password_hash = &user.clone().password_hash.unwrap();
+    let password_hash = &user.clone().auth_factors.password.password_hash.unwrap();
 
     let parsed_hash =
         PasswordHash::new(password_hash).map_err(|_| eyre::eyre!("Failed to compute hash"))?;

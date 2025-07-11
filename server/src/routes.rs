@@ -1,4 +1,4 @@
-mod api;
+pub mod api;
 
 use utoipa_axum::router::UtoipaMethodRouter;
 

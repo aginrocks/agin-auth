@@ -63,15 +63,15 @@ async fn get_login_options(
 
     let mut options: Vec<FirstFactor> = vec![];
 
-    if user.password_hash.is_some() {
+    if user.auth_factors.password.password_hash.is_some() {
         options.push(FirstFactor::Password);
     }
 
-    if !user.two_factor.webauthn.is_empty() {
+    if !user.auth_factors.webauthn.is_empty() {
         options.push(FirstFactor::WebAuthn);
     }
 
-    if !user.two_factor.gpg.is_empty() {
+    if !user.auth_factors.gpg.is_empty() {
         options.push(FirstFactor::Gpg);
     }
 

@@ -29,7 +29,7 @@ use utoipa_scalar::{Scalar, Servable as _};
 
 use crate::{
     database::{init_database, init_session_store},
-    middlewares::require_auth::require_auth,
+    middlewares::require_auth::{require_auth, require_first_factor},
     routes::RouteProtectionLevel,
     settings::Settings,
     state::AppState,
@@ -114,16 +114,20 @@ async fn init_axum(
         .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::Public))
         .fold(public_router, |router, (route, _)| router.routes(route));
 
-    // Add protected routes with OIDC login layer
-    let redirect_router = routes
+    // Add routes that require only first factor of authentication
+    let before_second_factor_router = routes
         .clone()
         .into_iter()
         .filter(|(_, protected)| matches!(*protected, RouteProtectionLevel::BeforeTwoFactor))
         .fold(before_second_factor_router, |router, (route, _)| {
             router.routes(route)
-        });
+        })
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_first_factor,
+        ));
 
-    // Add protected routes which don't redirect but require authentication
+    // Add protected routes
     let auth_router = routes
         .clone()
         .into_iter()
@@ -132,7 +136,7 @@ async fn init_axum(
         .layer(middleware::from_fn_with_state(state.clone(), require_auth));
 
     // Combine the routers
-    let router = public_router.merge(redirect_router);
+    let router = public_router.merge(before_second_factor_router);
 
     let router = router.merge(auth_router);
 
