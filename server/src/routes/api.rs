@@ -4,6 +4,7 @@ mod register;
 mod settings;
 
 use serde::{Deserialize, Serialize};
+use strum::Display;
 use utoipa::{ToSchema, schema};
 
 use super::Route;
@@ -18,7 +19,7 @@ pub fn routes() -> Vec<Route> {
     .concat()
 }
 
-#[derive(Clone, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug, Display)]
 pub enum AuthState {
     Anonymous,
     BeforeTwoFactor,

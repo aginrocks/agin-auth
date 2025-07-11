@@ -25,8 +25,7 @@ impl Deref for UserId {
 
 async fn get_auth_state(session: &Session) -> Result<(ObjectId, AuthState)> {
     let user_id = session.get::<ObjectId>("user_id").await?;
-
-    let auth_state = session.get::<AuthState>("user_id").await?;
+    let auth_state = session.get::<AuthState>("auth_state").await?;
     if auth_state.is_none() || user_id.is_none() {
         return Err(eyre::eyre!("Unauthorized"));
     }
