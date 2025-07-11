@@ -54,7 +54,7 @@ async fn get_login_options(
             options: vec![
                 FirstFactor::Password,
                 FirstFactor::WebAuthn,
-                FirstFactor::Gpg,
+                FirstFactor::Pgp,
             ],
         }));
     }
@@ -72,7 +72,7 @@ async fn get_login_options(
     }
 
     if !user.auth_factors.gpg.is_empty() {
-        options.push(FirstFactor::Gpg);
+        options.push(FirstFactor::Pgp);
     }
 
     Ok(Json(OptionsRepsonse { options }))

@@ -95,7 +95,7 @@ pub struct RecoveryCodeFactor {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
-pub struct GPGFactor {
+pub struct PGPFactor {
     pub public_key: String,
     pub fingerprint: String,
     pub display_name: String,
@@ -106,9 +106,9 @@ pub struct PasswordFactor {
     pub password_hash: Option<String>,
 }
 
-impl GPGFactor {
-    pub fn to_public(&self) -> PublicGPGFactor {
-        PublicGPGFactor {
+impl PGPFactor {
+    pub fn to_public(&self) -> PublicPGPFactor {
+        PublicPGPFactor {
             fingerprint: self.fingerprint.clone(),
             display_name: self.display_name.clone(),
         }
@@ -120,7 +120,7 @@ pub struct AuthFactors {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
     pub recovery_codes: Vec<RecoveryCodeFactor>,
-    pub gpg: Vec<GPGFactor>,
+    pub gpg: Vec<PGPFactor>,
     pub password: PasswordFactor,
 }
 
@@ -170,7 +170,7 @@ pub struct PublicRecoveryCodeFactor {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
-pub struct PublicGPGFactor {
+pub struct PublicPGPFactor {
     pub fingerprint: String,
     pub display_name: String,
 }
@@ -180,7 +180,7 @@ pub struct PublicAuthFactors {
     pub totp: Option<PublicTOTPFactor>,
     pub webauthn: Vec<PublicWebAuthnFactor>,
     pub recovery_codes: PublicRecoveryCodeFactor,
-    pub gpg: Vec<PublicGPGFactor>,
+    pub gpg: Vec<PublicPGPFactor>,
     pub password: PublicPasswordFactor,
 }
 
@@ -189,7 +189,7 @@ pub struct PublicAuthFactors {
 pub enum FirstFactor {
     Password,
     WebAuthn,
-    Gpg,
+    Pgp,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
@@ -198,7 +198,7 @@ pub enum SecondFactor {
     Totp,
     WebAuthn,
     RecoveryCode,
-    Gpg,
+    Pgp,
 }
 
 database_object!(User {
@@ -242,7 +242,7 @@ pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     }
 
     if !user.auth_factors.gpg.is_empty() {
-        second_factors.push(SecondFactor::Gpg);
+        second_factors.push(SecondFactor::Pgp);
     }
 
     if !user.auth_factors.recovery_codes.is_empty() {
