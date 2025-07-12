@@ -1,4 +1,4 @@
-mod totp;
+pub mod totp;
 
 use axum::{Extension, Json};
 use color_eyre::eyre::ContextCompat;

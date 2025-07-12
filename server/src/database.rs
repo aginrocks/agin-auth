@@ -250,7 +250,12 @@ pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
         second_factors.push(SecondFactor::WebAuthn);
     }
 
-    if user.auth_factors.totp.is_some() {
+    if user
+        .auth_factors
+        .totp
+        .clone()
+        .is_some_and(|totp| totp.fully_enabled)
+    {
         second_factors.push(SecondFactor::Totp);
     }
 

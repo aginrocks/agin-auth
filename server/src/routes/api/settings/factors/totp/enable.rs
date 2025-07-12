@@ -15,7 +15,7 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
+    routes::{RouteProtectionLevel, api::settings::factors::totp::create_totp_instance},
     state::AppState,
 };
 
@@ -42,6 +42,8 @@ pub struct EnableTotpBody {
 pub struct EnableTotpResponse {
     /// The secret won't be shown again, so save it securely.
     pub secret: String,
+    /// QR code URL that'll add the TOTP factor to your authenticator app. Won't be shown again.
+    pub qr: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -106,7 +108,16 @@ async fn enable_totp(
         )
         .await?;
 
+    let totp = create_totp_instance(
+        &encoded_secret,
+        Some(user.email),
+        Some("Agin Auth".to_string()),
+    )?;
+
+    let qr = totp.get_url();
+
     Ok(Json(EnableTotpResponse {
         secret: encoded_secret,
+        qr,
     }))
 }

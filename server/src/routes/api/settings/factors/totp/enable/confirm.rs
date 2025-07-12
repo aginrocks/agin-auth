@@ -2,16 +2,18 @@ use axum::{Extension, Json};
 use axum_valid::Valid;
 use color_eyre::eyre::{self, ContextCompat};
 use mongodb::bson::doc;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use utoipa::ToSchema;
 use utoipa_axum::routes;
-use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::{RouteProtectionLevel, api::settings::factors::totp::verify_totp},
+    routes::{
+        RouteProtectionLevel,
+        api::settings::factors::totp::{TotpCodeBody, verify_totp},
+    },
     state::AppState,
 };
 
@@ -24,13 +26,6 @@ pub fn routes() -> Vec<Route> {
         routes!(confirm_enabling_totp),
         RouteProtectionLevel::Authenticated,
     )]
-}
-
-#[derive(Deserialize, ToSchema, Validate)]
-pub struct ConfirmTotpBody {
-    /// TOTP code to confirm enabling the factor.
-    #[validate(length(equal = 6))]
-    pub code: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -53,7 +48,7 @@ pub struct AlreadyEnabledError {
 #[utoipa::path(
     method(post),
     path = PATH,
-    request_body = ConfirmTotpBody,
+    request_body = TotpCodeBody,
     responses(
         (status = OK, description = "Success", body = ConfirmTotpResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),
@@ -64,7 +59,7 @@ pub struct AlreadyEnabledError {
 async fn confirm_enabling_totp(
     Extension(state): Extension<AppState>,
     Extension(user_id): Extension<UserId>,
-    Valid(Json(body)): Valid<Json<ConfirmTotpBody>>,
+    Valid(Json(body)): Valid<Json<TotpCodeBody>>,
 ) -> AxumResult<Json<ConfirmTotpResponse>> {
     let user = get_user_by_id(&state.database, &user_id)
         .await?

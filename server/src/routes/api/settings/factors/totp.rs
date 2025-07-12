@@ -3,9 +3,10 @@ mod enable;
 
 use base32::{Alphabet, decode};
 use color_eyre::eyre::{self, Context, ContextCompat};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use totp_rs::TOTP;
-use utoipa::{ToSchema, schema};
+use utoipa::ToSchema;
+use validator::Validate;
 
 use crate::axum_error::{AxumError, AxumResult};
 
@@ -49,4 +50,18 @@ pub fn verify_totp(secret: &str, code: &str) -> AxumResult<()> {
     }
 
     Ok(())
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"error": "Invalid 2FA code"}))]
+pub struct Invalid2faCode {
+    pub error: String,
+}
+
+// TODO: Add proper code validation
+#[derive(Deserialize, ToSchema, Validate)]
+pub struct TotpCodeBody {
+    /// TOTP code to confirm enabling the factor.
+    #[validate(length(equal = 6))]
+    pub code: String,
 }

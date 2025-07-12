@@ -1,4 +1,4 @@
-mod factors;
+pub mod factors;
 
 use super::Route;
 

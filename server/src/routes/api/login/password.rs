@@ -12,12 +12,12 @@ use utoipa_axum::routes;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{SecondFactor, get_second_factors, get_user},
+    database::{get_second_factors, get_user},
     routes::{RouteProtectionLevel, api::AuthState},
     state::AppState,
 };
 
-use super::Route;
+use super::{Route, SuccessfulLoginResponse};
 
 const PATH: &str = "/api/login/password";
 
@@ -29,13 +29,6 @@ pub fn routes() -> Vec<Route> {
 struct LoginBody {
     username: String,
     password: String,
-}
-
-#[derive(Serialize, ToSchema)]
-struct LoginResponse {
-    two_factor_required: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    second_factors: Option<Vec<SecondFactor>>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -51,7 +44,7 @@ pub struct InvalidUserOrPass {
     method(post),
     path = PATH,
     responses(
-        (status = OK, description = "Success", body = LoginResponse, content_type = "application/json"),
+        (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = InvalidUserOrPass, content_type = "application/json"),
     ),
     tag = "Login"
@@ -60,7 +53,7 @@ async fn login_with_password(
     Extension(state): Extension<AppState>,
     session: Session,
     Json(body): Json<LoginBody>,
-) -> AxumResult<Json<LoginResponse>> {
+) -> AxumResult<Json<SuccessfulLoginResponse>> {
     let user = get_user(&state.database, &body.username).await?;
 
     // Hashing the password in order to prevent timing attacks
@@ -106,7 +99,7 @@ async fn login_with_password(
             .insert("auth_state", AuthState::Authenticated)
             .await?;
 
-        return Ok(Json(LoginResponse {
+        return Ok(Json(SuccessfulLoginResponse {
             two_factor_required: false,
             second_factors: None,
         }));
@@ -116,7 +109,7 @@ async fn login_with_password(
         .insert("auth_state", AuthState::BeforeTwoFactor)
         .await?;
 
-    Ok(Json(LoginResponse {
+    Ok(Json(SuccessfulLoginResponse {
         two_factor_required: true,
         second_factors: Some(second_factors),
     }))
