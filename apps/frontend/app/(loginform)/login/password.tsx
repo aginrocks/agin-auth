@@ -10,10 +10,11 @@ import Link from 'next/link';
 import { $api } from '@lib/providers/api';
 import { Separator } from '@components/ui/separator';
 import { useSetAtom } from 'jotai';
-import { optionsAtom } from './login-options';
+import { twofactorOptionsAtom } from './two-factor-options';
 
 export function Password() {
     const setScreen = useSetAtom(screenAtom);
+    const setOptions = useSetAtom(twofactorOptionsAtom);
 
     const form = useFormContext<FormSchema>();
 
@@ -21,8 +22,12 @@ export function Password() {
 
     const passwordLogin = $api.useMutation('post', '/api/login/password', {
         onSuccess: ({ two_factor_required, second_factors }) => {
-            // if (options.length === 1) return setScreen(options[0]);
-            // setScreen('login-options');
+            if (!two_factor_required || !second_factors) return;
+
+            setOptions(second_factors);
+
+            if (second_factors.length === 1) return setScreen(second_factors[0]);
+            setScreen('two-factor-options');
         },
         onError: (e) => {
             form.setError('password', {
@@ -59,7 +64,6 @@ export function Password() {
                     name="password"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Password</FormLabel>
                             <FormControl>
                                 <Input
                                     placeholder="Enter your password"
@@ -77,7 +81,7 @@ export function Password() {
                 </Button>
                 <div className="text-muted-foreground text-center text-sm">
                     <LinkComponent>
-                        <Link href="/register">Forgot Password?</Link>
+                        <div onClick={() => setScreen('login-options')}>More Options</div>
                     </LinkComponent>
                 </div>
             </div>

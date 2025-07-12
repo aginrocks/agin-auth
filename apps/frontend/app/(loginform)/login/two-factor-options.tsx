@@ -1,4 +1,3 @@
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@components/ui/form';
 import { LoginIcon } from '@components/ui/login-icon';
 import {
     IconArrowRight,
@@ -6,29 +5,21 @@ import {
     IconFingerprint,
     IconKey,
     IconLifebuoy,
-    IconPassword,
     IconShieldLock,
 } from '@tabler/icons-react';
-import { useFormContext } from 'react-hook-form';
-import { FormSchema, screenAtom } from './page';
-import { Input } from '@components/ui/input';
-import { Button } from '@components/ui/button';
-import { LinkComponent } from '@components/ui/link';
-import Link from 'next/link';
-import { $api } from '@lib/providers/api';
-import { Separator } from '@components/ui/separator';
+import { screenAtom } from './page';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { paths } from 'api-schema';
 import { LoginOption, LoginOptionProps } from '@components/ui/login-option';
 
-export type TLoginOption = Exclude<
+export type T2FAOption = Exclude<
     paths['/api/login/password']['post']['responses']['200']['content']['application/json']['second_factors'],
     undefined | null
 >[number];
 
-export const optionsAtom = atom<TLoginOption[]>();
+export const twofactorOptionsAtom = atom<T2FAOption[]>();
 
-export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
+export const OPTIONS_MAP: Record<T2FAOption, LoginOptionProps> = {
     webauthn: {
         title: 'Security key / Passkey',
         icon: IconFingerprint,
@@ -53,7 +44,7 @@ export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
 
 export function TwoFactorOptions() {
     const setScreen = useSetAtom(screenAtom);
-    const options = useAtomValue(optionsAtom);
+    const options = useAtomValue(twofactorOptionsAtom);
 
     return (
         <div className="flex flex-col items-center">

@@ -1,4 +1,3 @@
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@components/ui/form';
 import { LoginIcon } from '@components/ui/login-icon';
 import {
     IconArrowRight,
@@ -7,17 +6,12 @@ import {
     IconPassword,
     IconShieldLock,
 } from '@tabler/icons-react';
-import { useFormContext } from 'react-hook-form';
-import { FormSchema, screenAtom } from './page';
-import { Input } from '@components/ui/input';
-import { Button } from '@components/ui/button';
-import { LinkComponent } from '@components/ui/link';
-import Link from 'next/link';
-import { $api } from '@lib/providers/api';
-import { Separator } from '@components/ui/separator';
+import { screenAtom } from './page';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { paths } from 'api-schema';
 import { LoginOption, LoginOptionProps } from '@components/ui/login-option';
+import Link from 'next/link';
+import { LinkComponent } from '@components/ui/link';
 
 export type TLoginOption =
     paths['/api/login/options']['get']['responses']['200']['content']['application/json']['options'][number];
@@ -67,6 +61,13 @@ export function LoginOptions() {
                         onClick={() => setScreen(o)}
                     />
                 ))}
+                {options?.includes('password') && (
+                    <div className="text-muted-foreground text-center text-sm mt-2">
+                        <LinkComponent>
+                            <Link href="/register">Forgot Password?</Link>
+                        </LinkComponent>
+                    </div>
+                )}
             </div>
         </div>
     );

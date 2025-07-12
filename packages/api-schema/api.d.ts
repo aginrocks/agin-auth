@@ -61,6 +61,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/login/totp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with TOTP
+         * @description **This endpoint can only be used as a second factor.** TOTP is not considered secure enough to be used as a primary authentication method.
+         */
+        post: operations["login_with_totp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/register": {
         parameters: {
             query?: never;
@@ -98,15 +118,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/factors/totp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable TOTP
+         * @description Generates TOTP secret and saves it. To fully enable TOTP, a call to `/api/settings/factors/totp/enable/confirm` is required.
+         */
+        post: operations["enable_totp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/factors/totp/enable/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm enabling TOTP
+         * @description Confirm enabling TOTP by providing the TOTP code.
+         */
+        post: operations["confirm_enabling_totp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @example {
+         *       "error": "TOTP is already enabled. To rotate your TOTP secret, disable it first and then enable it again."
+         *     } */
+        AlreadyEnabledError: {
+            error: string;
+        };
+        /** @example {
          *       "error": "User with this username or email already existsd"
          *     } */
         BadRequestError: {
             error: string;
+        };
+        /** @example {
+         *       "success": true
+         *     } */
+        ConfirmTotpResponse: {
+            success: boolean;
         };
         /** @example {
          *       "success": true,
@@ -116,8 +188,24 @@ export interface components {
             id: string;
             success: boolean;
         };
+        EnableTotpBody: {
+            /** @description The display name for the TOTP factor (for example authenticator app name). */
+            display_name: string;
+        };
+        EnableTotpResponse: {
+            /** @description QR code URL that'll add the TOTP factor to your authenticator app. Won't be shown again. */
+            qr: string;
+            /** @description The secret won't be shown again, so save it securely. */
+            secret: string;
+        };
         /** @enum {string} */
         FirstFactor: "password" | "webauthn" | "pgp";
+        /** @example {
+         *       "error": "Invalid 2FA code"
+         *     } */
+        Invalid2faCode: {
+            error: string;
+        };
         /** @example {
          *       "error": "Invalid username or password"
          *     } */
@@ -128,16 +216,12 @@ export interface components {
             password: string;
             username: string;
         };
-        LoginResponse: {
-            second_factors?: components["schemas"]["SecondFactor"][] | null;
-            two_factor_required: boolean;
-        };
         OptionsRepsonse: {
             options: components["schemas"]["FirstFactor"][];
         };
         PublicAuthFactors: {
-            pgp: components["schemas"]["PublicPGPFactor"][];
             password: components["schemas"]["PublicPasswordFactor"];
+            pgp: components["schemas"]["PublicPGPFactor"][];
             recovery_codes: components["schemas"]["PublicRecoveryCodeFactor"];
             totp?: null | components["schemas"]["PublicTOTPFactor"];
             webauthn: components["schemas"]["PublicWebAuthnFactor"][];
@@ -155,6 +239,7 @@ export interface components {
         };
         PublicTOTPFactor: {
             display_name: string;
+            fully_enabled: boolean;
         };
         PublicWebAuthnFactor: {
             credential_id: string;
@@ -170,6 +255,14 @@ export interface components {
         };
         /** @enum {string} */
         SecondFactor: "totp" | "webauthn" | "recoverycode" | "pgp";
+        SuccessfulLoginResponse: {
+            second_factors?: components["schemas"]["SecondFactor"][] | null;
+            two_factor_required: boolean;
+        };
+        TotpCodeBody: {
+            /** @description TOTP code to confirm enabling the factor. */
+            code: string;
+        };
         /** @example {
          *       "error": "Unauthorized"
          *     } */
@@ -247,7 +340,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["SuccessfulLoginResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -257,6 +350,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvalidUserOrPass"];
+                };
+            };
+        };
+    };
+    login_with_totp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpCodeBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessfulLoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invalid2faCode"];
                 };
             };
         };
@@ -319,6 +445,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    enable_totp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnableTotpBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnableTotpResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description Already Enabled */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlreadyEnabledError"];
+                };
+            };
+        };
+    };
+    confirm_enabling_totp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TotpCodeBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmTotpResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description Already Enabled */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlreadyEnabledError"];
                 };
             };
         };

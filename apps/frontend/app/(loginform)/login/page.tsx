@@ -9,10 +9,13 @@ import { atom, useAtomValue } from 'jotai';
 import { Welcome } from './welcome';
 import { LoginOptions } from './login-options';
 import { Password } from './password';
+import { TwoFactorOptions } from './two-factor-options';
+import { Totp } from './totp';
 
 export const formSchema = z.object({
     username: z.string().min(1, 'Username is required'),
     password: z.string().optional(),
+    totp: z.string().optional(),
 });
 
 export type FormSchema = z.infer<typeof formSchema>;
@@ -24,7 +27,8 @@ export type LoginScreen =
     | 'totp'
     | 'pgp'
     | 'login-options'
-    | 'recoverycode';
+    | 'recoverycode'
+    | 'two-factor-options';
 
 export const screenAtom = atom<LoginScreen>('welcome');
 
@@ -36,6 +40,7 @@ export default function Page() {
         defaultValues: {
             username: '',
             password: '',
+            totp: '',
         },
     });
 
@@ -44,6 +49,8 @@ export default function Page() {
             {screen === 'welcome' && <Welcome />}
             {screen === 'login-options' && <LoginOptions />}
             {screen === 'password' && <Password />}
+            {screen === 'two-factor-options' && <TwoFactorOptions />}
+            {screen === 'totp' && <Totp />}
             <div className="text-muted-foreground text-xs absolute left-4 right-4 bottom-4 text-center">
                 By signing in you accept our{' '}
                 <LinkComponent>
