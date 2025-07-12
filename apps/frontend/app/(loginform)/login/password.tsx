@@ -21,12 +21,13 @@ export function Password() {
     const username = form.watch('username');
 
     const passwordLogin = $api.useMutation('post', '/api/login/password', {
-        onSuccess: ({ two_factor_required, second_factors }) => {
+        onSuccess: ({ two_factor_required, second_factors, recent_factor }) => {
             if (!two_factor_required || !second_factors) return;
 
             setOptions(second_factors);
 
             if (second_factors.length === 1) return setScreen(second_factors[0]);
+            if (recent_factor) return setScreen(recent_factor);
             setScreen('two-factor-options');
         },
         onError: (e) => {

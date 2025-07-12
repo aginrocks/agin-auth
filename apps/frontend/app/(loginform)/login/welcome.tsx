@@ -19,9 +19,10 @@ export function Welcome() {
     const form = useFormContext<FormSchema>();
 
     const loginOptions = $api.useMutation('get', '/api/login/options', {
-        onSuccess: ({ options }) => {
+        onSuccess: ({ options, recent_factor }) => {
             setOptions(options);
             if (options.length === 1) return setScreen(options[0]);
+            if (recent_factor) return setScreen(recent_factor);
             setScreen('login-options');
         },
     });
