@@ -7,7 +7,7 @@ use utoipa_axum::routes;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::get_user_by_id,
+    database::{SecondFactor, get_user_by_id, set_recent_factor},
     middlewares::require_auth::UserId,
     routes::{
         RouteProtectionLevel,
@@ -65,6 +65,8 @@ async fn login_with_totp(
 
     verify_totp(&user.auth_factors.totp.unwrap().secret, &body.code)?;
 
+    set_recent_factor(&state.database, &user_id, SecondFactor::Totp.into()).await?;
+
     session
         .insert("auth_state", AuthState::Authenticated)
         .await?;
@@ -72,5 +74,6 @@ async fn login_with_totp(
     Ok(Json(SuccessfulLoginResponse {
         two_factor_required: false,
         second_factors: None,
+        recent_factor: None,
     }))
 }

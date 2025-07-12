@@ -12,7 +12,7 @@ use utoipa_axum::routes;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{get_second_factors, get_user},
+    database::{FirstFactor, get_second_factors, get_user, set_recent_factor},
     routes::{RouteProtectionLevel, api::AuthState},
     state::AppState,
 };
@@ -102,8 +102,11 @@ async fn login_with_password(
         return Ok(Json(SuccessfulLoginResponse {
             two_factor_required: false,
             second_factors: None,
+            recent_factor: None,
         }));
     }
+
+    set_recent_factor(&state.database, &user.id, FirstFactor::Password.into()).await?;
 
     session
         .insert("auth_state", AuthState::BeforeTwoFactor)
@@ -112,5 +115,6 @@ async fn login_with_password(
     Ok(Json(SuccessfulLoginResponse {
         two_factor_required: true,
         second_factors: Some(second_factors),
+        recent_factor: user.auth_factors.recent.second_factor,
     }))
 }

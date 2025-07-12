@@ -22,6 +22,9 @@ pub fn routes() -> Vec<Route> {
 #[derive(Serialize, ToSchema)]
 struct OptionsRepsonse {
     options: Vec<FirstFactor>,
+    /// Recently used factor
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recent_factor: Option<FirstFactor>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -56,6 +59,7 @@ async fn get_login_options(
                 FirstFactor::WebAuthn,
                 FirstFactor::Pgp,
             ],
+            recent_factor: None,
         }));
     }
 
@@ -75,5 +79,8 @@ async fn get_login_options(
         options.push(FirstFactor::Pgp);
     }
 
-    Ok(Json(OptionsRepsonse { options }))
+    Ok(Json(OptionsRepsonse {
+        options,
+        recent_factor: user.auth_factors.recent.first_factor,
+    }))
 }

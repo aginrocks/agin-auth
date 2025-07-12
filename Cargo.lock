@@ -2862,6 +2862,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_plain",
  "strum",
  "tokio",
  "toml 0.8.23",

@@ -1,7 +1,7 @@
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 use mongodb::{
     Client, Database,
-    bson::{doc, oid::ObjectId},
+    bson::{Bson, doc, oid::ObjectId},
 };
 use partial_struct::Partial;
 use serde::{Deserialize, Serialize};
@@ -17,8 +17,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use visible::StructFields;
 
-use crate::mongo_id::object_id_as_string_required;
 use crate::settings::Settings;
+use crate::{axum_error::AxumResult, mongo_id::object_id_as_string_required};
 
 macro_rules! database_object {
     ($name:ident { $($field:tt)* }$(, $($omitfield:ident),*)?) => {
@@ -118,12 +118,19 @@ impl PGPFactor {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
+pub struct RecentFactors {
+    pub first_factor: Option<FirstFactor>,
+    pub second_factor: Option<SecondFactor>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
 pub struct AuthFactors {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
     pub recovery_codes: Vec<RecoveryCodeFactor>,
     pub pgp: Vec<PGPFactor>,
     pub password: PasswordFactor,
+    pub recent: RecentFactors,
 }
 
 impl AuthFactors {
@@ -145,6 +152,7 @@ impl AuthFactors {
             password: PublicPasswordFactor {
                 is_set: self.password.password_hash.is_some(),
             },
+            ..Default::default()
         }
     }
 }
@@ -155,7 +163,7 @@ pub struct PublicTOTPFactor {
     pub fully_enabled: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
 pub struct PublicPasswordFactor {
     pub is_set: bool,
 }
@@ -167,7 +175,7 @@ pub struct PublicWebAuthnFactor {
     pub display_name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
 pub struct PublicRecoveryCodeFactor {
     pub remaining_codes: u8,
 }
@@ -178,13 +186,14 @@ pub struct PublicPGPFactor {
     pub display_name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
 pub struct PublicAuthFactors {
     pub totp: Option<PublicTOTPFactor>,
     pub webauthn: Vec<PublicWebAuthnFactor>,
     pub recovery_codes: PublicRecoveryCodeFactor,
     pub pgp: Vec<PublicPGPFactor>,
     pub password: PublicPasswordFactor,
+    pub recent: RecentFactors,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
@@ -202,6 +211,31 @@ pub enum SecondFactor {
     WebAuthn,
     RecoveryCode,
     Pgp,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[serde(untagged)]
+pub enum AnyFactor {
+    First(FirstFactor),
+    Second(SecondFactor),
+}
+
+impl From<FirstFactor> for AnyFactor {
+    fn from(f: FirstFactor) -> Self {
+        AnyFactor::First(f)
+    }
+}
+
+impl From<SecondFactor> for AnyFactor {
+    fn from(s: SecondFactor) -> Self {
+        AnyFactor::Second(s)
+    }
+}
+
+impl From<AnyFactor> for Bson {
+    fn from(value: AnyFactor) -> Self {
+        Bson::String(serde_plain::to_string(&value).unwrap())
+    }
 }
 
 database_object!(User {
@@ -268,4 +302,30 @@ pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     }
 
     second_factors
+}
+
+pub async fn set_recent_factor(
+    database: &Database,
+    user_id: &ObjectId,
+    factor: AnyFactor,
+) -> AxumResult<()> {
+    let update_key = match &factor {
+        AnyFactor::First(_) => "auth_factors.recent.first_factor",
+        AnyFactor::Second(_) => "auth_factors.recent.second_factor",
+    };
+
+    database
+        .collection::<User>("users")
+        .update_one(
+            doc! { "_id": user_id },
+            doc! {
+                "$set": {
+                    update_key: factor
+                }
+            },
+        )
+        .await
+        .wrap_err("Failed to update recent factor")?;
+
+    Ok(())
 }

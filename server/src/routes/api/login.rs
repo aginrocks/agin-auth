@@ -16,6 +16,11 @@ pub fn routes() -> Vec<Route> {
 #[derive(Serialize, ToSchema)]
 struct SuccessfulLoginResponse {
     two_factor_required: bool,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     second_factors: Option<Vec<SecondFactor>>,
+
+    /// Recently used factor
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recent_factor: Option<SecondFactor>,
 }

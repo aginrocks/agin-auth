@@ -218,10 +218,12 @@ export interface components {
         };
         OptionsRepsonse: {
             options: components["schemas"]["FirstFactor"][];
+            recent_factor?: null | components["schemas"]["FirstFactor"];
         };
         PublicAuthFactors: {
             password: components["schemas"]["PublicPasswordFactor"];
             pgp: components["schemas"]["PublicPGPFactor"][];
+            recent: components["schemas"]["RecentFactors"];
             recovery_codes: components["schemas"]["PublicRecoveryCodeFactor"];
             totp?: null | components["schemas"]["PublicTOTPFactor"];
             webauthn: components["schemas"]["PublicWebAuthnFactor"][];
@@ -245,6 +247,10 @@ export interface components {
             credential_id: string;
             display_name: string;
         };
+        RecentFactors: {
+            first_factor?: null | components["schemas"]["FirstFactor"];
+            second_factor?: null | components["schemas"]["SecondFactor"];
+        };
         RegisterBody: {
             display_name: string;
             email: string;
@@ -256,6 +262,7 @@ export interface components {
         /** @enum {string} */
         SecondFactor: "totp" | "webauthn" | "recoverycode" | "pgp";
         SuccessfulLoginResponse: {
+            recent_factor?: null | components["schemas"]["SecondFactor"];
             second_factors?: components["schemas"]["SecondFactor"][] | null;
             two_factor_required: boolean;
         };
