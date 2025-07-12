@@ -1,12 +1,8 @@
-mod confirm;
-
 use axum::{Extension, Json};
 use axum_valid::Valid;
-use base32::{Alphabet, encode};
 use color_eyre::eyre::{self, ContextCompat};
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
-use totp_rs::Secret;
 use utoipa::ToSchema;
 use utoipa_axum::routes;
 use validator::Validate;
@@ -15,33 +11,32 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
+    routes::{RouteProtectionLevel, api::settings::factors::totp::verify_totp},
     state::AppState,
 };
 
 use super::Route;
 
-const PATH: &str = "/api/settings/factors/totp/enable";
+const PATH: &str = "/api/settings/factors/totp/enable/confirm";
 
 pub fn routes() -> Vec<Route> {
-    [
-        vec![(routes!(enable_totp), RouteProtectionLevel::Authenticated)],
-        confirm::routes(),
-    ]
-    .concat()
+    vec![(
+        routes!(confirm_enabling_totp),
+        RouteProtectionLevel::Authenticated,
+    )]
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
-pub struct EnableTotpBody {
-    /// The display name for the TOTP factor (for example authenticator app name).
-    #[validate(length(min = 1, max = 32))]
-    pub display_name: String,
+pub struct ConfirmTotpBody {
+    /// TOTP code to confirm enabling the factor.
+    #[validate(length(equal = 6))]
+    pub code: String,
 }
 
 #[derive(Serialize, ToSchema)]
-pub struct EnableTotpResponse {
-    /// The secret won't be shown again, so save it securely.
-    pub secret: String,
+#[schema(example = json!({ "success": true }))]
+pub struct ConfirmTotpResponse {
+    pub success: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -52,30 +47,31 @@ pub struct AlreadyEnabledError {
     pub error: String,
 }
 
-/// Enable TOTP
+/// Confirm enabling TOTP
 ///
-/// Generates TOTP secret and saves it. To fully enable TOTP, a call to `/api/settings/factors/totp/enable/confirm` is required.
+/// Confirm enabling TOTP by providing the TOTP code.
 #[utoipa::path(
     method(post),
     path = PATH,
-    request_body = EnableTotpBody,
+    request_body = ConfirmTotpBody,
     responses(
-        (status = OK, description = "Success", body = EnableTotpResponse, content_type = "application/json"),
+        (status = OK, description = "Success", body = ConfirmTotpResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),
         (status = FORBIDDEN, description = "Already Enabled", body = AlreadyEnabledError, content_type = "application/json"),
     ),
     tag = "Settings"
 )]
-async fn enable_totp(
+async fn confirm_enabling_totp(
     Extension(state): Extension<AppState>,
     Extension(user_id): Extension<UserId>,
-    Valid(Json(body)): Valid<Json<EnableTotpBody>>,
-) -> AxumResult<Json<EnableTotpResponse>> {
+    Valid(Json(body)): Valid<Json<ConfirmTotpBody>>,
+) -> AxumResult<Json<ConfirmTotpResponse>> {
     let user = get_user_by_id(&state.database, &user_id)
         .await?
         .wrap_err("User not found")?;
 
     let already_enabled = user
+        .clone()
         .auth_factors
         .totp
         .is_some_and(|totp| totp.fully_enabled);
@@ -86,8 +82,15 @@ async fn enable_totp(
         )));
     }
 
-    let raw_secret = Secret::generate_secret().to_bytes()?;
-    let encoded_secret = encode(Alphabet::Rfc4648 { padding: false }, &raw_secret);
+    let secret = user
+        .auth_factors
+        .totp
+        .ok_or(AxumError::forbidden(eyre::eyre!(
+            "TOTP secret is not yet generated"
+        )))?
+        .secret;
+
+    verify_totp(&secret, &body.code)?;
 
     state
         .database
@@ -96,17 +99,11 @@ async fn enable_totp(
             doc! { "_id": *user_id },
             doc! {
                 "$set": {
-                    "auth_factors.totp": {
-                        "secret": &encoded_secret,
-                        "display_name": body.display_name,
-                        "fully_enabled": false,
-                    }
+                    "auth_factors.totp.fully_enabled": true,
                 }
             },
         )
         .await?;
 
-    Ok(Json(EnableTotpResponse {
-        secret: encoded_secret,
-    }))
+    Ok(Json(ConfirmTotpResponse { success: true }))
 }

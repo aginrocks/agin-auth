@@ -3,7 +3,9 @@ mod enable;
 
 use base32::{Alphabet, decode};
 use color_eyre::eyre::{self, Context, ContextCompat};
+use serde::Serialize;
 use totp_rs::TOTP;
+use utoipa::{ToSchema, schema};
 
 use crate::axum_error::{AxumError, AxumResult};
 

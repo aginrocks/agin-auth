@@ -69,6 +69,10 @@ pub async fn require_first_factor(
         return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
     }
 
+    if auth_state == AuthState::Authenticated {
+        return Err(AxumError::forbidden(eyre::eyre!("Already logged in")));
+    }
+
     request.extensions_mut().insert(UserId(user_id));
 
     Ok(next.run(request).await)
