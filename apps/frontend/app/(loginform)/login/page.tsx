@@ -22,7 +22,7 @@ export type LoginScreen =
     | 'webauthn'
     | 'password'
     | 'totp'
-    | 'gpg'
+    | 'pgp'
     | 'login-options'
     | 'recoverycode';
 

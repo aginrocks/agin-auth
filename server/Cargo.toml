@@ -8,6 +8,7 @@ argon2 = "0.5.3"
 async-trait = "0.1.88"
 axum = { version = "0.8.4", features = ["macros"] }
 axum-valid = "0.24.0"
+base32 = "0.5.1"
 base64 = "0.22.1"
 color-eyre = "0.6.4"
 config = "0.15.11"
@@ -36,6 +37,7 @@ serde_json = "1.0.140"
 strum = { version = "0.27.1", features = ["derive"] }
 tokio = { version = "1.45.0", features = ["full"] }
 toml = "0.8.22"
+totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 tower = { version = "0.5.2", features = ["full", "tokio", "log"] }
 tower-sessions = "0.14.0"
 tower-sessions-redis-store = "0.16.0"

@@ -44,7 +44,7 @@ export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
         icon: IconLifebuoy,
         rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
     },
-    gpg: {
+    pgp: {
         title: 'PGP Key',
         icon: IconKey,
         rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,

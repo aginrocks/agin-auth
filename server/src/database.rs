@@ -61,12 +61,14 @@ pub async fn init_session_store(
 pub struct TOTPFactor {
     pub secret: String,
     pub display_name: String,
+    pub fully_enabled: bool,
 }
 
 impl TOTPFactor {
     pub fn to_public(&self) -> PublicTOTPFactor {
         PublicTOTPFactor {
             display_name: self.display_name.clone(),
+            fully_enabled: self.fully_enabled,
         }
     }
 }
@@ -120,7 +122,7 @@ pub struct AuthFactors {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
     pub recovery_codes: Vec<RecoveryCodeFactor>,
-    pub gpg: Vec<PGPFactor>,
+    pub pgp: Vec<PGPFactor>,
     pub password: PasswordFactor,
 }
 
@@ -139,7 +141,7 @@ impl AuthFactors {
             recovery_codes: PublicRecoveryCodeFactor {
                 remaining_codes: remaining_recovery_codes,
             },
-            gpg: self.gpg.iter().map(|factor| factor.to_public()).collect(),
+            pgp: self.pgp.iter().map(|factor| factor.to_public()).collect(),
             password: PublicPasswordFactor {
                 is_set: self.password.password_hash.is_some(),
             },
@@ -150,6 +152,7 @@ impl AuthFactors {
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct PublicTOTPFactor {
     pub display_name: String,
+    pub fully_enabled: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
@@ -180,7 +183,7 @@ pub struct PublicAuthFactors {
     pub totp: Option<PublicTOTPFactor>,
     pub webauthn: Vec<PublicWebAuthnFactor>,
     pub recovery_codes: PublicRecoveryCodeFactor,
-    pub gpg: Vec<PublicPGPFactor>,
+    pub pgp: Vec<PublicPGPFactor>,
     pub password: PublicPasswordFactor,
 }
 
@@ -230,6 +233,16 @@ pub async fn get_user(
         .await
 }
 
+pub async fn get_user_by_id(
+    database: &Database,
+    user_id: &ObjectId,
+) -> std::result::Result<Option<User>, mongodb::error::Error> {
+    database
+        .collection::<User>("users")
+        .find_one(doc! { "_id": user_id })
+        .await
+}
+
 pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     let mut second_factors = vec![];
 
@@ -241,7 +254,7 @@ pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
         second_factors.push(SecondFactor::Totp);
     }
 
-    if !user.auth_factors.gpg.is_empty() {
+    if !user.auth_factors.pgp.is_empty() {
         second_factors.push(SecondFactor::Pgp);
     }
 

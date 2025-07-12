@@ -117,7 +117,7 @@ export interface components {
             success: boolean;
         };
         /** @enum {string} */
-        FirstFactor: "password" | "webauthn" | "gpg";
+        FirstFactor: "password" | "webauthn" | "pgp";
         /** @example {
          *       "error": "Invalid username or password"
          *     } */
@@ -136,7 +136,7 @@ export interface components {
             options: components["schemas"]["FirstFactor"][];
         };
         PublicAuthFactors: {
-            gpg: components["schemas"]["PublicPGPFactor"][];
+            pgp: components["schemas"]["PublicPGPFactor"][];
             password: components["schemas"]["PublicPasswordFactor"];
             recovery_codes: components["schemas"]["PublicRecoveryCodeFactor"];
             totp?: null | components["schemas"]["PublicTOTPFactor"];
@@ -169,7 +169,7 @@ export interface components {
             preferred_username: string;
         };
         /** @enum {string} */
-        SecondFactor: "totp" | "webauthn" | "recoverycode" | "gpg";
+        SecondFactor: "totp" | "webauthn" | "recoverycode" | "pgp";
         /** @example {
          *       "error": "Unauthorized"
          *     } */

@@ -1,3 +1,5 @@
+mod totp;
+
 use axum::{Extension, Json};
 use color_eyre::eyre::ContextCompat;
 use mongodb::bson::doc;
@@ -16,7 +18,11 @@ use super::Route;
 const PATH: &str = "/api/settings/factors";
 
 pub fn routes() -> Vec<Route> {
-    vec![(routes!(get_factors), RouteProtectionLevel::Authenticated)]
+    [
+        vec![(routes!(get_factors), RouteProtectionLevel::Authenticated)],
+        totp::routes(),
+    ]
+    .concat()
 }
 
 /// Get factors
