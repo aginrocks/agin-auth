@@ -12,11 +12,13 @@ import { Password } from './password';
 import { TwoFactorOptions } from './two-factor-options';
 import { Totp } from './totp';
 import { AnimatePresence, motion } from 'motion/react';
+import { RecoveryCode } from './recovery-code';
 
 export const formSchema = z.object({
     username: z.string().min(1, 'Username is required'),
     password: z.string().optional(),
     totp: z.string().optional(),
+    recovery_code: z.string().optional(),
 });
 
 export type FormSchema = z.infer<typeof formSchema>;
@@ -42,6 +44,7 @@ export default function Page() {
             username: '',
             password: '',
             totp: '',
+            recovery_code: '',
         },
     });
 
@@ -60,6 +63,7 @@ export default function Page() {
                     {screen === 'password' && <Password />}
                     {screen === 'two-factor-options' && <TwoFactorOptions />}
                     {screen === 'totp' && <Totp />}
+                    {screen === 'recoverycode' && <RecoveryCode />}
                 </motion.div>
             </AnimatePresence>
             <div className="text-muted-foreground text-xs absolute left-4 right-4 bottom-4 text-center">

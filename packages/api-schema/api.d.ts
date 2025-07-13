@@ -61,6 +61,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/login/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log in with a recovery code
+         * @description **This endpoint can only be used as a second factor.** Each recovery code can be used only one time.
+         */
+        post: operations["login_with_recovery_code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/login/totp": {
         parameters: {
             query?: never;
@@ -112,6 +132,26 @@ export interface paths {
         get: operations["get_factors"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/factors/recovery-codes/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable recovery codes
+         * @description **Calling this endpoint again will regenerate the recovery codes.** The old codes will be forever lost.
+         */
+        post: operations["enable_recovery_codes"];
         delete?: never;
         options?: never;
         head?: never;
@@ -188,6 +228,10 @@ export interface components {
             id: string;
             success: boolean;
         };
+        EnableRecoveryCodesResponse: {
+            /** @description Generated security codes. Save them securely as they won't be shown again. */
+            codes: string[];
+        };
         EnableTotpBody: {
             /** @description The display name for the TOTP factor (for example authenticator app name). */
             display_name: string;
@@ -204,6 +248,12 @@ export interface components {
          *       "error": "Invalid 2FA code"
          *     } */
         Invalid2faCode: {
+            error: string;
+        };
+        /** @example {
+         *       "error": "Invalid recovery code"
+         *     } */
+        InvalidRecoveryCode: {
             error: string;
         };
         /** @example {
@@ -250,6 +300,9 @@ export interface components {
         RecentFactors: {
             first_factor?: null | components["schemas"]["FirstFactor"];
             second_factor?: null | components["schemas"]["SecondFactor"];
+        };
+        RecoveryCodeLoginBody: {
+            code: string;
         };
         RegisterBody: {
             display_name: string;
@@ -361,6 +414,39 @@ export interface operations {
             };
         };
     };
+    login_with_recovery_code: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecoveryCodeLoginBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessfulLoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvalidRecoveryCode"];
+                };
+            };
+        };
+    };
     login_with_totp: {
         parameters: {
             query?: never;
@@ -443,6 +529,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicAuthFactors"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    enable_recovery_codes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnableRecoveryCodesResponse"];
                 };
             };
             /** @description Unauthorized */
