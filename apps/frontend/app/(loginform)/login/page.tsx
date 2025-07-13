@@ -11,6 +11,7 @@ import { LoginOptions } from './login-options';
 import { Password } from './password';
 import { TwoFactorOptions } from './two-factor-options';
 import { Totp } from './totp';
+import { AnimatePresence, motion } from 'motion/react';
 
 export const formSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -46,11 +47,21 @@ export default function Page() {
 
     return (
         <Form {...form}>
-            {screen === 'welcome' && <Welcome />}
-            {screen === 'login-options' && <LoginOptions />}
-            {screen === 'password' && <Password />}
-            {screen === 'two-factor-options' && <TwoFactorOptions />}
-            {screen === 'totp' && <Totp />}
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                    key={screen}
+                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                >
+                    {screen === 'welcome' && <Welcome />}
+                    {screen === 'login-options' && <LoginOptions />}
+                    {screen === 'password' && <Password />}
+                    {screen === 'two-factor-options' && <TwoFactorOptions />}
+                    {screen === 'totp' && <Totp />}
+                </motion.div>
+            </AnimatePresence>
             <div className="text-muted-foreground text-xs absolute left-4 right-4 bottom-4 text-center">
                 By signing in you accept our{' '}
                 <LinkComponent>
