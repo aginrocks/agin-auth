@@ -1,54 +1,61 @@
 use axum::{Extension, Json};
-use color_eyre::eyre;
+use color_eyre::eyre::{self};
 use mongodb::bson::doc;
+use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
-
+use utoipa::ToSchema;
 use utoipa_axum::routes;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{SecondFactor, get_user_by_id, set_recent_factor},
+    database::{SecondFactor, User, get_user_by_id, set_recent_factor},
     middlewares::require_auth::UserId,
     routes::{
         RouteProtectionLevel,
-        api::{
-            AuthState,
-            login::SuccessfulLoginResponse,
-            settings::factors::totp::{Invalid2faCode, TotpCodeBody, verify_totp},
-        },
+        api::{AuthState, settings::factors::recovery_codes::verify_recovery_code},
     },
     state::AppState,
 };
 
-use super::Route;
+use super::{Route, SuccessfulLoginResponse};
 
-const PATH: &str = "/api/login/totp";
+const PATH: &str = "/api/login/recovery-codes";
 
 pub fn routes() -> Vec<Route> {
     vec![(
-        routes!(login_with_totp),
+        routes!(login_with_recovery_code),
         RouteProtectionLevel::BeforeTwoFactor,
     )]
 }
 
-/// Log in with TOTP
+#[derive(Deserialize, ToSchema)]
+struct RecoveryCodeLoginBody {
+    code: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"error": "Invalid recovery code"}))]
+pub struct InvalidRecoveryCode {
+    error: String,
+}
+
+/// Log in with a recovery code
 ///
-/// **This endpoint can only be used as a second factor.** TOTP is not considered secure enough to be used as a primary authentication method.
+/// **This endpoint can only be used as a second factor.** Each recovery code can be used only one time.
 #[utoipa::path(
     method(post),
     path = PATH,
-    request_body = TotpCodeBody,
     responses(
         (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),
-        (status = UNAUTHORIZED, description = "Unauthorized", body = Invalid2faCode, content_type = "application/json"),
+        (status = UNAUTHORIZED, description = "Unauthorized", body = InvalidRecoveryCode, content_type = "application/json"),
     ),
     tag = "Login"
 )]
-async fn login_with_totp(
+async fn login_with_recovery_code(
     Extension(state): Extension<AppState>,
     Extension(user_id): Extension<UserId>,
     session: Session,
-    Json(body): Json<TotpCodeBody>,
+    Json(body): Json<RecoveryCodeLoginBody>,
 ) -> AxumResult<Json<SuccessfulLoginResponse>> {
     let user = get_user_by_id(&state.database, &user_id).await?;
 
@@ -66,7 +73,23 @@ async fn login_with_totp(
 
     let user = user.unwrap();
 
-    verify_totp(&user.auth_factors.totp.unwrap().secret, &body.code)?;
+    let code_hash = verify_recovery_code(body.code, user.auth_factors.recovery_codes)?;
+
+    state
+        .database
+        .collection::<User>("users")
+        .find_one_and_update(
+            doc! {
+                "_id": *user_id,
+                "auth_factors.recovery_codes.code_hash": code_hash
+            },
+            doc! {
+                "$set": {
+                    "auth_factors.recovery_codes.$.used": true
+                }
+            },
+        )
+        .await?;
 
     set_recent_factor(&state.database, &user_id, SecondFactor::Totp.into()).await?;
 

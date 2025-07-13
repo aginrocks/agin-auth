@@ -1,3 +1,4 @@
+pub mod recovery_codes;
 pub mod totp;
 
 use axum::{Extension, Json};
@@ -21,6 +22,7 @@ pub fn routes() -> Vec<Route> {
     [
         vec![(routes!(get_factors), RouteProtectionLevel::Authenticated)],
         totp::routes(),
+        recovery_codes::routes(),
     ]
     .concat()
 }

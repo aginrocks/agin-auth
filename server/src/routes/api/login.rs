@@ -1,5 +1,6 @@
 mod options;
 mod password;
+mod recovery_codes;
 mod totp;
 
 use serde::Serialize;
@@ -10,7 +11,13 @@ use crate::database::SecondFactor;
 use super::Route;
 
 pub fn routes() -> Vec<Route> {
-    [options::routes(), password::routes(), totp::routes()].concat()
+    [
+        options::routes(),
+        password::routes(),
+        totp::routes(),
+        recovery_codes::routes(),
+    ]
+    .concat()
 }
 
 #[derive(Serialize, ToSchema)]

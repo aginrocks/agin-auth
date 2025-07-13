@@ -1,7 +1,7 @@
 use color_eyre::eyre::{Context, Result};
 use mongodb::{
     Client, Database,
-    bson::{Bson, doc, oid::ObjectId},
+    bson::{self, Bson, doc, oid::ObjectId},
 };
 use partial_struct::Partial;
 use serde::{Deserialize, Serialize};
@@ -94,6 +94,12 @@ impl WebAuthnFactor {
 pub struct RecoveryCodeFactor {
     pub code_hash: String,
     pub used: bool,
+}
+
+impl From<RecoveryCodeFactor> for Bson {
+    fn from(value: RecoveryCodeFactor) -> Self {
+        bson::to_bson(&value).unwrap()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
