@@ -27,6 +27,7 @@ pub fn routes() -> Vec<Route> {
 
 #[derive(Deserialize, ToSchema)]
 struct LoginBody {
+    /// Username or email address
     username: String,
     password: String,
 }

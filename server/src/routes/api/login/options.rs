@@ -75,7 +75,7 @@ async fn get_login_options(
         options.push(FirstFactor::WebAuthn);
     }
 
-    if !user.auth_factors.pgp.is_empty() {
+    if user.auth_factors.pgp.is_some() {
         options.push(FirstFactor::Pgp);
     }
 

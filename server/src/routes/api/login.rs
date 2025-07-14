@@ -1,5 +1,6 @@
 mod options;
 mod password;
+mod pgp;
 mod recovery_codes;
 mod totp;
 
@@ -16,6 +17,7 @@ pub fn routes() -> Vec<Route> {
         password::routes(),
         totp::routes(),
         recovery_codes::routes(),
+        pgp::routes(),
     ]
     .concat()
 }

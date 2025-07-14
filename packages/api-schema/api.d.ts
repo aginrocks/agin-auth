@@ -138,6 +138,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/factors/pgp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable PGP
+         * @description Enables PGP authentication factor for the user. This factor can only be used as a first factor.
+         */
+        post: operations["enable_pgp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/factors/recovery-codes/enable": {
         parameters: {
             query?: never;
@@ -228,6 +248,17 @@ export interface components {
             id: string;
             success: boolean;
         };
+        EnablePgpBody: {
+            /** @description The display name for the TOTP factor (for example authenticator app name). */
+            display_name: string;
+            public_key: string;
+        };
+        /** @example {
+         *       "success": true
+         *     } */
+        EnablePgpResponse: {
+            success: boolean;
+        };
         EnableRecoveryCodesResponse: {
             /** @description Generated security codes. Save them securely as they won't be shown again. */
             codes: string[];
@@ -313,7 +344,7 @@ export interface components {
             preferred_username: string;
         };
         /** @enum {string} */
-        SecondFactor: "totp" | "webauthn" | "recoverycode" | "pgp";
+        SecondFactor: "totp" | "webauthn" | "recoverycode";
         SuccessfulLoginResponse: {
             recent_factor?: null | components["schemas"]["SecondFactor"];
             second_factors?: components["schemas"]["SecondFactor"][] | null;
@@ -529,6 +560,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicAuthFactors"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    enable_pgp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnablePgpBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnablePgpResponse"];
                 };
             };
             /** @description Unauthorized */

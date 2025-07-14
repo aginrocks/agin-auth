@@ -134,7 +134,7 @@ pub struct AuthFactors {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
     pub recovery_codes: Vec<RecoveryCodeFactor>,
-    pub pgp: Vec<PGPFactor>,
+    pub pgp: Option<PGPFactor>,
     pub password: PasswordFactor,
     pub recent: RecentFactors,
 }
@@ -216,7 +216,6 @@ pub enum SecondFactor {
     Totp,
     WebAuthn,
     RecoveryCode,
-    Pgp,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
@@ -297,10 +296,6 @@ pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
         .is_some_and(|totp| totp.fully_enabled)
     {
         second_factors.push(SecondFactor::Totp);
-    }
-
-    if !user.auth_factors.pgp.is_empty() {
-        second_factors.push(SecondFactor::Pgp);
     }
 
     if !user.auth_factors.recovery_codes.is_empty() {

@@ -35,11 +35,6 @@ export const OPTIONS_MAP: Record<T2FAOption, LoginOptionProps> = {
         icon: IconLifebuoy,
         rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
     },
-    pgp: {
-        title: 'PGP Key',
-        icon: IconKey,
-        rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
-    },
 };
 
 export function TwoFactorOptions() {

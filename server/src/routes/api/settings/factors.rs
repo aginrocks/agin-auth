@@ -1,3 +1,4 @@
+pub mod pgp;
 pub mod recovery_codes;
 pub mod totp;
 
@@ -23,6 +24,7 @@ pub fn routes() -> Vec<Route> {
         vec![(routes!(get_factors), RouteProtectionLevel::Authenticated)],
         totp::routes(),
         recovery_codes::routes(),
+        pgp::routes(),
     ]
     .concat()
 }
