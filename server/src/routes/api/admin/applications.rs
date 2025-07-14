@@ -44,4 +44,4 @@ async fn get_applications(
         .collect::<Vec<_>>();
 
     Ok(Json(public_applications))
-}   
+}
