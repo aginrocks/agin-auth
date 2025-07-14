@@ -1,9 +1,10 @@
 use axum::{Extension, Json};
 use color_eyre::eyre::{Context, ContextCompat};
-use serde::Serialize;
+use serde::Deserialize;
 use tower_sessions::Session;
 use utoipa::ToSchema;
 use utoipa_axum::routes;
+use validator::Validate;
 use webauthn_rs::prelude::CreationChallengeResponse;
 
 use crate::{
@@ -25,12 +26,19 @@ pub fn routes() -> Vec<Route> {
     )]
 }
 
+#[derive(Deserialize, ToSchema, Validate)]
+pub struct WebAuthnRegistrationBody {
+    #[validate(length(min = 1, max = 32))]
+    pub display_name: String,
+}
+
 /// Start WebAuthn setup
 ///
 /// Request a challenge to start the WebAuthn registration process. After receiving a response from the browser, the client should call the `/api/settings/factors/webauthn/finish` endpoint to complete the registration.
 #[utoipa::path(
-    method(get),
+    method(post),
     path = PATH,
+    request_body = WebAuthnRegistrationBody,
     responses(
         (status = OK, description = "Success", body = crate::webauthn::types::CreationChallengeResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),
@@ -41,6 +49,7 @@ async fn webauthn_start_setup(
     Extension(user_id): Extension<UserId>,
     Extension(state): Extension<AppState>,
     session: Session,
+    Json(body): Json<WebAuthnRegistrationBody>,
 ) -> AxumResult<Json<CreationChallengeResponse>> {
     let user = get_user_by_id(&state.database, &user_id)
         .await?
@@ -61,6 +70,9 @@ async fn webauthn_start_setup(
         .wrap_err("Challenge generation failed")?;
 
     session.insert("reg_state", reg_state).await?;
+    session
+        .insert("webauthn_display_name", body.display_name)
+        .await?;
 
     Ok(Json(ccr))
 }

@@ -1,7 +1,8 @@
+mod finish;
 mod start;
 
 use super::Route;
 
 pub fn routes() -> Vec<Route> {
-    [start::routes()].concat()
+    [start::routes(), finish::routes()].concat()
 }

@@ -78,15 +78,13 @@ impl TOTPFactor {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct WebAuthnFactor {
-    pub credential_id: Uuid,
-    pub public_key: String,
+    pub serialized_key: String,
     pub display_name: String,
 }
 
 impl WebAuthnFactor {
     pub fn to_public(&self) -> PublicWebAuthnFactor {
         PublicWebAuthnFactor {
-            credential_id: self.credential_id,
             display_name: self.display_name.clone(),
         }
     }
@@ -178,7 +176,6 @@ pub struct PublicPasswordFactor {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct PublicWebAuthnFactor {
-    pub credential_id: Uuid,
     pub display_name: String,
 }
 
