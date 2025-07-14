@@ -18,7 +18,10 @@ use uuid::Uuid;
 use visible::StructFields;
 
 use crate::settings::Settings;
-use crate::{axum_error::AxumResult, mongo_id::object_id_as_string_required};
+use crate::{
+    axum_error::AxumResult,
+    mongo_id::{object_id_as_string_required, vec_oid_to_vec_string},
+};
 
 macro_rules! database_object {
     ($name:ident { $($field:tt)* }$(, $($omitfield:ident),*)?) => {
@@ -255,6 +258,74 @@ database_object!(User {
     preferred_username: String,
     email: String,
     auth_factors: AuthFactors,
+
+    #[serde(with = "vec_oid_to_vec_string")]
+    #[schema(value_type = Vec<String>)]
+    groups: Vec<ObjectId>,
+});
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum ClientType {
+    Public,
+    Confidential,
+}
+
+database_object!(Application {
+    #[serde(rename = "_id", with = "object_id_as_string_required")]
+    #[schema(value_type = String)]
+    id: ObjectId,
+    name: String,
+    slug: String,
+    icon: String,
+    client_type: ClientType,
+    client_id: String,
+    client_secret: String,
+    redirect_uris: Vec<String>,
+
+    #[serde(with = "vec_oid_to_vec_string")]
+    #[schema(value_type = Vec<String>)]
+    allowed_groups: Vec<ObjectId>,
+});
+
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+pub struct PublicApplication {
+    #[serde(rename = "_id", with = "object_id_as_string_required")]
+    #[schema(value_type = String)]
+    pub id: ObjectId,
+    pub name: String,
+    pub slug: String,
+    pub icon: String,
+    pub client_type: ClientType,
+    pub client_id: String,
+    pub redirect_uris: Vec<String>,
+
+    #[serde(with = "vec_oid_to_vec_string")]
+    #[schema(value_type = Vec<String>)]
+    pub allowed_groups: Vec<ObjectId>,
+}
+
+impl Application {
+    pub fn to_public(&self) -> PublicApplication {
+        PublicApplication {
+            id: self.id,
+            name: self.name.clone(),
+            slug: self.slug.clone(),
+            icon: self.icon.clone(),
+            client_type: self.client_type.clone(),
+            client_id: self.client_id.clone(),
+            redirect_uris: self.redirect_uris.clone(),
+            allowed_groups: self.allowed_groups.clone(),
+        }
+    }
+}
+
+database_object!(Group {
+    #[serde(rename = "_id", with = "object_id_as_string_required")]
+    #[schema(value_type = String)]
+    id: ObjectId,
+    name: String,
+    is_admin: bool,
 });
 
 pub async fn get_user(
