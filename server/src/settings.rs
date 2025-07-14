@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString, IntoStaticStr};
 use tracing::warn;
 
-const ENV_PREFIX: &str = "AGINCI";
+const ENV_PREFIX: &str = "AGINAUTH";
 const ENV_SEPARATOR: &str = "_";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -60,10 +60,24 @@ pub struct Redis {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct WebAuthn {
+    pub rp_id: String,
+
+    pub rp_origin: webauthn_rs::prelude::Url,
+
+    pub rp_name: String,
+
+    pub allow_any_port: Option<bool>,
+
+    pub allow_subdomains: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings {
     pub general: General,
     pub db: Db,
     pub redis: Redis,
+    pub webauthn: WebAuthn,
 }
 
 impl Settings {
@@ -137,6 +151,15 @@ impl Settings {
             },
             redis: Redis {
                 connection_string: "redis://localhost:6379".to_string(),
+            },
+            webauthn: WebAuthn {
+                rp_id: "localhost".to_string(),
+                rp_origin: "http://localhost:8080"
+                    .parse()
+                    .expect("hardcoded uri should parse"),
+                rp_name: "Agin Auth".to_string(),
+                allow_any_port: Some(false),
+                allow_subdomains: Some(false),
             },
         }
     }

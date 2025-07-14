@@ -7,6 +7,7 @@ mod routes;
 mod settings;
 mod state;
 mod validators;
+mod webauthn;
 
 use std::{net::SocketAddr, sync::Arc};
 
@@ -33,6 +34,7 @@ use crate::{
     routes::RouteProtectionLevel,
     settings::Settings,
     state::AppState,
+    webauthn::init_webauthn,
 };
 
 #[derive(OpenApi)]
@@ -56,9 +58,12 @@ async fn main() -> Result<()> {
 
     let database = init_database(&settings).await?;
 
+    let webauthn = init_webauthn(&settings)?;
+
     let app_state = AppState {
         database,
         settings: settings.clone(),
+        webauthn,
     };
 
     let session_layer = init_session_store(&settings).await?;

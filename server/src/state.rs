@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use mongodb::Database;
+use webauthn_rs::Webauthn;
 
 use crate::settings::Settings;
 
@@ -8,4 +9,5 @@ use crate::settings::Settings;
 pub struct AppState {
     pub database: Database,
     pub settings: Arc<Settings>,
+    pub webauthn: Arc<Webauthn>,
 }
