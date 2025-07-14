@@ -114,6 +114,7 @@ async fn register(
             },
             ..Default::default()
         },
+        groups: vec![],
     };
 
     let inserted = state

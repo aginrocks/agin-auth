@@ -1,3 +1,4 @@
+mod admin;
 mod health;
 mod login;
 mod register;
@@ -15,6 +16,7 @@ pub fn routes() -> Vec<Route> {
         login::routes(),
         register::routes(),
         settings::routes(),
+        admin::routes(),
     ]
     .concat()
 }

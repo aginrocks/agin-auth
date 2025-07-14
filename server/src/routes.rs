@@ -13,6 +13,7 @@ pub enum RouteProtectionLevel {
     Public,
     BeforeTwoFactor,
     Authenticated,
+    Admin,
 }
 
 type Route = (UtoipaMethodRouter<AppState>, RouteProtectionLevel);
