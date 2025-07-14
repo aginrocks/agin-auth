@@ -78,7 +78,6 @@ impl TOTPFactor {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct WebAuthnFactor {
-    #[schema(value_type = String)]
     pub credential_id: Uuid,
     pub public_key: String,
     pub display_name: String,
@@ -179,7 +178,6 @@ pub struct PublicPasswordFactor {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct PublicWebAuthnFactor {
-    #[schema(value_type = String)]
     pub credential_id: Uuid,
     pub display_name: String,
 }
@@ -250,7 +248,6 @@ database_object!(User {
     #[serde(rename = "_id", with = "object_id_as_string_required")]
     #[schema(value_type = String)]
     id: ObjectId,
-    #[schema(value_type = String)]
     uuid: Uuid,
     first_name: String,
     last_name: String,

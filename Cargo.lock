@@ -3582,6 +3582,7 @@ dependencies = [
  "axum-valid",
  "base32",
  "base64 0.22.1",
+ "base64urlsafedata",
  "chrono",
  "color-eyre",
  "config",
@@ -4515,6 +4516,8 @@ dependencies = [
  "quote",
  "regex",
  "syn 2.0.104",
+ "url",
+ "uuid",
 ]
 
 [[package]]

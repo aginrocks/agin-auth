@@ -10,6 +10,7 @@ axum = { version = "0.8.4", features = ["macros"] }
 axum-valid = "0.24.0"
 base32 = "0.5.1"
 base64 = "0.22.1"
+base64urlsafedata = "0.5.2"
 chrono = { version = "0.4.41", features = ["serde"] }
 color-eyre = "0.6.4"
 config = "0.15.11"
@@ -57,7 +58,7 @@ tracing-subscriber = { version = "0.3.19", features = [
     "time",
 ] }
 url = "2.5.4"
-utoipa = { version = "5.3.1", features = ["axum_extras"] }
+utoipa = { version = "5.3.1", features = ["axum_extras", "url", "uuid"] }
 utoipa-axum = "0.2.0"
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }

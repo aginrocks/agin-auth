@@ -1,6 +1,7 @@
 pub mod pgp;
 pub mod recovery_codes;
 pub mod totp;
+pub mod webauthn;
 
 use axum::{Extension, Json};
 use color_eyre::eyre::ContextCompat;
@@ -25,6 +26,7 @@ pub fn routes() -> Vec<Route> {
         totp::routes(),
         recovery_codes::routes(),
         pgp::routes(),
+        webauthn::routes(),
     ]
     .concat()
 }

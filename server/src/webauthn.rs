@@ -1,3 +1,5 @@
+pub mod types;
+
 use color_eyre::eyre::{Context, Result};
 use std::sync::Arc;
 use webauthn_rs::{Webauthn, WebauthnBuilder};
