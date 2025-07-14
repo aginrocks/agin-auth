@@ -2,10 +2,6 @@ use axum::{Extension, Json};
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{self};
-use pgp::{
-    composed::{Message, StandaloneSignature},
-    packet::Signature,
-};
 use rand::{Rng, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;

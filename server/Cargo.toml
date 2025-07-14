@@ -65,3 +65,4 @@ utoipa-scalar = { version = "0.3.0", features = ["axum"] }
 uuid = { version = "1.17.0", features = ["v4"] }
 validator = { version = "0.20.0", features = ["derive"] }
 visible = "0.0.1"
+webauthn-rs = { version = "0.5.2", features = ["danger-allow-state-serialisation"] }
