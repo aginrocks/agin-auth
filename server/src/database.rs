@@ -15,12 +15,14 @@ use tower_sessions_redis_store::{
 };
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::Validate;
 use visible::StructFields;
 
-use crate::settings::Settings;
 use crate::{
     axum_error::AxumResult,
     mongo_id::{object_id_as_string_required, vec_oid_to_vec_string},
+    settings::Settings,
+    validators::slug_validator,
 };
 
 macro_rules! database_object {
@@ -277,10 +279,10 @@ database_object!(Application {
     id: ObjectId,
     name: String,
     slug: String,
-    icon: String,
+    icon: Option<String>,
     client_type: ClientType,
     client_id: String,
-    client_secret: String,
+    client_secret: Option<String>,
     redirect_uris: Vec<String>,
 
     #[serde(with = "vec_oid_to_vec_string")]
@@ -288,16 +290,30 @@ database_object!(Application {
     allowed_groups: Vec<ObjectId>,
 });
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Partial, Validate)]
+#[partial(
+    "EditApplicationBody",
+    omit(id, client_id),
+    derive(Debug, Serialize, Deserialize, ToSchema, Clone, Validate)
+)]
 pub struct PublicApplication {
     #[serde(rename = "_id", with = "object_id_as_string_required")]
     #[schema(value_type = String)]
     pub id: ObjectId,
+
+    #[validate(length(min = 1, max = 32))]
     pub name: String,
+
+    #[validate(custom(function = "slug_validator"), length(min = 1, max = 32))]
     pub slug: String,
-    pub icon: String,
+
+    #[validate(length(min = 1, max = 256))]
+    pub icon: Option<String>,
+
     pub client_type: ClientType,
+
     pub client_id: String,
+
     pub redirect_uris: Vec<String>,
 
     #[serde(with = "vec_oid_to_vec_string")]

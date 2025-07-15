@@ -83,3 +83,9 @@ pub async fn require_first_factor(
 pub struct UnauthorizedError {
     error: String,
 }
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({"error": "Forbidden"}))]
+pub struct ForbiddenError {
+    error: String,
+}
