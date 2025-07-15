@@ -24,7 +24,7 @@ export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
         icon: IconPassword,
         rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,
     },
-    webauthn: {
+    webauthnpasswordless: {
         title: 'Security key / Passkey',
         icon: IconFingerprint,
         rightSection: <IconArrowRight className="size-4 text-muted-foreground" />,

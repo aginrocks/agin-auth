@@ -13,6 +13,7 @@ import { TwoFactorOptions } from './two-factor-options';
 import { Totp } from './totp';
 import { AnimatePresence, motion } from 'motion/react';
 import { RecoveryCode } from './recovery-code';
+import { WebAuthn } from './webauthn';
 
 export const formSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -26,6 +27,7 @@ export type FormSchema = z.infer<typeof formSchema>;
 export type LoginScreen =
     | 'welcome'
     | 'webauthn'
+    | 'webauthnpasswordless'
     | 'password'
     | 'totp'
     | 'pgp'
@@ -64,6 +66,7 @@ export default function Page() {
                     {screen === 'two-factor-options' && <TwoFactorOptions />}
                     {screen === 'totp' && <Totp />}
                     {screen === 'recoverycode' && <RecoveryCode />}
+                    {screen === 'webauthn' && <WebAuthn />}
                 </motion.div>
             </AnimatePresence>
             <div className="text-muted-foreground text-xs absolute left-4 right-4 bottom-4 text-center">
