@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/admin/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get applications */
+        get: operations["get_applications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -55,6 +72,30 @@ export interface paths {
          * @description If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.
          */
         post: operations["login_with_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/pgp/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get PGP challenge
+         * @description Returns a challenge that needs to be signed with the user's PGP key.
+         */
+        get: operations["get_pgp_challenge"];
+        put?: never;
+        /**
+         * Respond to PGP challenge
+         * @description Sign the challenge obtained from `GET /api/login/pgp/challenge` with the user's PGP key and send the signature here to complete the login process.
+         */
+        post: operations["respond_to_pgp_challenge"];
         delete?: never;
         options?: never;
         head?: never;
@@ -218,6 +259,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/factors/webauthn/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish WebAuthn setup
+         * @description Requires a previous call to `/api/settings/factors/webauthn/start` to initiate the registration process.
+         */
+        post: operations["webauthn_start_setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/factors/webauthn/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start WebAuthn setup
+         * @description Request a challenge to start the WebAuthn registration process. After receiving a response from the browser, the client should call the `/api/settings/factors/webauthn/finish` endpoint to complete the registration.
+         */
+        post: operations["webauthn_start_setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -228,12 +309,52 @@ export interface components {
         AlreadyEnabledError: {
             error: string;
         };
+        /**
+         * @description <https://www.w3.org/TR/webauthn/#enumdef-attestationconveyancepreference>
+         * @enum {string}
+         */
+        AttestationConveyancePreference: "none" | "indirect" | "direct";
+        /**
+         * @description The type of attestation on the credential
+         *
+         *     <https://www.iana.org/assignments/webauthn/webauthn.xhtml>
+         * @enum {string}
+         */
+        AttestationFormat: "packed" | "tpm" | "android-key" | "android-safetynet" | "fido-u2f" | "apple" | "none";
+        /**
+         * @description The authenticator attachment hint. This is NOT enforced, and is only used
+         *     to help a user select a relevant authenticator type.
+         *
+         *     <https://www.w3.org/TR/webauthn/#attachment>
+         * @enum {string}
+         */
+        AuthenticatorAttachment: "platform" | "cross-platform";
+        /** @description <https://www.w3.org/TR/webauthn/#dictdef-authenticatorselectioncriteria> */
+        AuthenticatorSelectionCriteria: {
+            authenticatorAttachment?: null | components["schemas"]["AuthenticatorAttachment"];
+            /** @description Hint to the credential to create a resident key. Note this can not be enforced
+             *     or validated, so the authenticator may choose to ignore this parameter.
+             *     <https://www.w3.org/TR/webauthn/#resident-credential> */
+            requireResidentKey: boolean;
+            residentKey?: null | components["schemas"]["ResidentKeyRequirement"];
+            /** @description The user verification level to request during registration. Depending on if this
+             *     authenticator provides verification may affect future interactions as this is
+             *     associated to the credential during registration. */
+            userVerification: components["schemas"]["UserVerificationPolicy"];
+        };
+        /**
+         * @description <https://www.w3.org/TR/webauthn/#enumdef-authenticatortransport>
+         * @enum {string}
+         */
+        AuthenticatorTransport: "usb" | "nfc" | "ble" | "internal" | "hybrid" | "test" | "unknown";
         /** @example {
          *       "error": "User with this username or email already existsd"
          *     } */
         BadRequestError: {
             error: string;
         };
+        /** @enum {string} */
+        ClientType: "public" | "confidential";
         /** @example {
          *       "success": true
          *     } */
@@ -248,6 +369,30 @@ export interface components {
             id: string;
             success: boolean;
         };
+        /** @description A JSON serializable challenge which is issued to the user's web browser
+         *     for handling. This is meant to be opaque, that is, you should not need
+         *     to inspect or alter the content of the struct - you should serialise it
+         *     and transmit it to the client only. */
+        CreationChallengeResponse: {
+            /** @description The options. */
+            publicKey: components["schemas"]["PublicKeyCredentialCreationOptions"];
+        };
+        /** @description The desired options for the client's use of the `credProtect` extension
+         *
+         *     <https://fidoalliance.org/specs/fido-v2.1-rd-20210309/fido-client-to-authenticator-protocol-v2.1-rd-20210309.html#sctn-credProtect-extension> */
+        CredProtect: {
+            /** @description The credential policy to enact */
+            credentialProtectionPolicy: components["schemas"]["CredentialProtectionPolicy"];
+            /** @description Whether it is better for the authenticator to fail to create a
+             *     credential rather than ignore the protection policy
+             *     If no value is provided, the client treats it as `false`. */
+            enforceCredentialProtectionPolicy?: boolean | null;
+        };
+        /**
+         * @description Valid credential protection policies
+         * @enum {string}
+         */
+        CredentialProtectionPolicy: "userVerificationOptional" | "userVerificationOptionalWithCredentialIDList" | "userVerificationRequired";
         EnablePgpBody: {
             /** @description The display name for the TOTP factor (for example authenticator app name). */
             display_name: string;
@@ -288,6 +433,12 @@ export interface components {
             error: string;
         };
         /** @example {
+         *       "error": "Invalid signature"
+         *     } */
+        InvalidSignature: {
+            error: string;
+        };
+        /** @example {
          *       "error": "Invalid username or password"
          *     } */
         InvalidUserOrPass: {
@@ -295,11 +446,41 @@ export interface components {
         };
         LoginBody: {
             password: string;
+            /** @description Username or email address */
             username: string;
         };
         OptionsRepsonse: {
             options: components["schemas"]["FirstFactor"][];
             recent_factor?: null | components["schemas"]["FirstFactor"];
+        };
+        PgpChallengeBody: {
+            /** @description Signature of the challenge obtained from `GET /api/login/pgp/challenge` */
+            signature: string;
+            /** @description Username or email address */
+            username: string;
+        };
+        PgpChallengeResponse: {
+            challenge: string;
+        };
+        /** @description Public key cryptographic parameters */
+        PubKeyCredParams: {
+            /**
+             * Format: int64
+             * @description The algorithm in use defined by COSE.
+             */
+            alg: number;
+            /** @description The type of public-key credential. */
+            type: string;
+        };
+        PublicApplication: {
+            _id: string;
+            allowed_groups: string[];
+            client_id: string;
+            client_type: components["schemas"]["ClientType"];
+            icon: string;
+            name: string;
+            redirect_uris: string[];
+            slug: string;
         };
         PublicAuthFactors: {
             password: components["schemas"]["PublicPasswordFactor"];
@@ -309,6 +490,48 @@ export interface components {
             totp?: null | components["schemas"]["PublicTOTPFactor"];
             webauthn: components["schemas"]["PublicWebAuthnFactor"][];
         };
+        /** @description <https://w3c.github.io/webauthn/#dictionary-makecredentialoptions> */
+        PublicKeyCredentialCreationOptions: {
+            attestation?: null | components["schemas"]["AttestationConveyancePreference"];
+            /** @description The list of attestation formats that the RP will accept. */
+            attestationFormats?: components["schemas"]["AttestationFormat"][] | null;
+            authenticatorSelection?: null | components["schemas"]["AuthenticatorSelectionCriteria"];
+            /** @description The one-time challenge for the credential to sign. */
+            challenge: string;
+            /** @description Credential ID's that are excluded from being able to be registered. */
+            excludeCredentials?: components["schemas"]["PublicKeyCredentialDescriptor"][] | null;
+            extensions?: null | components["schemas"]["RequestRegistrationExtensions"];
+            /** @description Hints defining which credentials may be used in this operation. */
+            hints?: components["schemas"]["PublicKeyCredentialHints"][] | null;
+            /** @description The set of cryptographic types allowed by this server. */
+            pubKeyCredParams: components["schemas"]["PubKeyCredParams"][];
+            /** @description The relying party */
+            rp: components["schemas"]["RelyingParty"];
+            /**
+             * Format: int32
+             * @description The timeout for the authenticator to stop accepting the operation
+             */
+            timeout?: number | null;
+            /** @description The user. */
+            user: components["schemas"]["User"];
+        };
+        /** @description <https://www.w3.org/TR/webauthn/#dictdef-publickeycredentialdescriptor> */
+        PublicKeyCredentialDescriptor: {
+            /** @description The credential id. */
+            id: string;
+            /** @description The allowed transports for this credential. Note this is a hint, and is NOT
+             *     enforced. */
+            transports?: components["schemas"]["AuthenticatorTransport"][] | null;
+            /** @description The type of credential */
+            type: string;
+        };
+        /**
+         * @description A hint as to the class of device that is expected to fufil this operation.
+         *
+         *     <https://www.w3.org/TR/webauthn-3/#enumdef-publickeycredentialhints>
+         * @enum {string}
+         */
+        PublicKeyCredentialHints: "security-key" | "client-device" | "hybrid";
         PublicPGPFactor: {
             display_name: string;
             fingerprint: string;
@@ -325,7 +548,6 @@ export interface components {
             fully_enabled: boolean;
         };
         PublicWebAuthnFactor: {
-            credential_id: string;
             display_name: string;
         };
         RecentFactors: {
@@ -343,6 +565,37 @@ export interface components {
             password: string;
             preferred_username: string;
         };
+        /** @description Relying Party Entity */
+        RelyingParty: {
+            /** @description The id of the relying party. */
+            id: string;
+            /** @description The name of the relying party. */
+            name: string;
+        };
+        /** @description Extension option inputs for PublicKeyCredentialCreationOptions.
+         *
+         *     Implements \[AuthenticatorExtensionsClientInputs\] from the spec. */
+        RequestRegistrationExtensions: (null | components["schemas"]["CredProtect"]) & {
+            /** @description ⚠️  - This extension result is always unsigned, and only indicates if the
+             *     browser *requests* a residentKey to be created. It has no bearing on the
+             *     true rk state of the credential. */
+            credProps?: boolean | null;
+            /** @description ⚠️  - Browsers support the *creation* of the secret, but not the retrieval of it.
+             *     CTAP2.1 create hmac secret */
+            hmacCreateSecret?: boolean | null;
+            /** @description CTAP2.1 Minumum pin length */
+            minPinLength?: boolean | null;
+            /** @description ⚠️  - Browsers do not support this!
+             *     Uvm */
+            uvm?: boolean | null;
+        };
+        /**
+         * @description The Relying Party's requirements for client-side discoverable credentials.
+         *
+         *     <https://www.w3.org/TR/webauthn-2/#enumdef-residentkeyrequirement>
+         * @enum {string}
+         */
+        ResidentKeyRequirement: "discouraged" | "preferred" | "required";
         /** @enum {string} */
         SecondFactor: "totp" | "webauthn" | "recoverycode";
         SuccessfulLoginResponse: {
@@ -360,6 +613,63 @@ export interface components {
         UnauthorizedError: {
             error: string;
         };
+        /** @description User Entity */
+        User: {
+            /** @description The user's preferred name for display. This value **can** change, so
+             *     **must not** be used as a primary key. */
+            displayName: string;
+            /** @description The user's id in base64 form. This MUST be a unique id, and
+             *     must NOT contain personally identifying information, as this value can NEVER
+             *     be changed. If in doubt, use a UUID. */
+            id: string;
+            /** @description A detailed name for the account, such as an email address. This value
+             *     **can** change, so **must not** be used as a primary key. */
+            name: string;
+        };
+        /**
+         * @description Defines the User Authenticator Verification policy. This is documented
+         *     <https://w3c.github.io/webauthn/#enumdef-userverificationrequirement>, and each
+         *     variant lists it's effects.
+         *
+         *     To be clear, Verification means that the Authenticator perform extra or supplementary
+         *     interaction with the user to verify who they are. An example of this is Apple Touch Id
+         *     required a fingerprint to be verified, or a yubico device requiring a pin in addition to
+         *     a touch event.
+         *
+         *     An example of a non-verified interaction is a yubico device with no pin where touch is
+         *     the only interaction - we only verify a user is present, but we don't have extra details
+         *     to the legitimacy of that user.
+         *
+         *     As UserVerificationPolicy is *only* used in credential registration, this stores the
+         *     verification state of the credential in the persisted credential. These persisted
+         *     credentials define which UserVerificationPolicy is issued during authentications.
+         *
+         *     **IMPORTANT** - Due to limitations of the webauthn specification, CTAP devices, and browser
+         *     implementations, the only secure choice as an RP is *required*.
+         *
+         *     > ⚠️  **WARNING** - discouraged is marked with a warning, as some authenticators
+         *     > will FORCE verification during registration but NOT during authentication.
+         *     > This makes it impossible for a relying party to *consistently* enforce user verification,
+         *     > which can confuse users and lead them to distrust user verification is being enforced.
+         *
+         *     > ⚠️  **WARNING** - preferred can lead to authentication errors in some cases due to browser
+         *     > peripheral exchange allowing authentication verification bypass. Webauthn RS is not vulnerable
+         *     > to these bypasses due to our
+         *     > tracking of UV during registration through authentication, however preferred can cause
+         *     > legitimate credentials to not prompt for UV correctly due to browser perhipheral exchange
+         *     > leading Webauthn RS to deny them in what should otherwise be legitimate operations.
+         * @enum {string}
+         */
+        UserVerificationPolicy: "required" | "preferred" | "discouraged";
+        /** @example {
+         *       "success": true
+         *     } */
+        WebAuthnFinishSuccess: {
+            success: boolean;
+        };
+        WebAuthnRegistrationBody: {
+            display_name: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -369,6 +679,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_applications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicApplication"][];
+                };
+            };
+        };
+    };
     get_health: {
         parameters: {
             query?: never;
@@ -441,6 +771,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvalidUserOrPass"];
+                };
+            };
+        };
+    };
+    get_pgp_challenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PgpChallengeResponse"];
+                };
+            };
+        };
+    };
+    respond_to_pgp_challenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PgpChallengeBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PgpChallengeResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvalidSignature"];
                 };
             };
         };
@@ -715,6 +1098,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlreadyEnabledError"];
+                };
+            };
+        };
+    };
+    webauthn_start_setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/plain": string;
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAuthnFinishSuccess"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    webauthn_start_setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebAuthnRegistrationBody"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreationChallengeResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
         };
