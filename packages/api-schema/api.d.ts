@@ -142,6 +142,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/login/webauthn/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish WebAuthn 2FA
+         * @description **This endpoint can only be used as a second factor.** For passwordless authentication, see `/api/login/webauthn/passwordless/start`. Requires a previous call to `/api/login/webauthn/start` to initiate the login process.
+         */
+        post: operations["webauthn_finish_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/webauthn/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start WebAuthn 2FA
+         * @description **This endpoint can only be used as a second factor.** For passwordless authentication, see `/api/login/webauthn/passwordless/start`. Request a challenge to start the WebAuthn login process. After receiving a response from the browser, the client should call the `/api/login/webauthn/finish` endpoint to complete the login.
+         */
+        post: operations["webauthn_start_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/register": {
         parameters: {
             query?: never;
@@ -303,6 +343,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description A descriptor of a credential that can be used. */
+        AllowCredentials: {
+            /** @description The id of the credential. */
+            id: string;
+            /** @description <https://www.w3.org/TR/webauthn/#transport>
+             *     may be usb, nfc, ble, internal */
+            transports?: components["schemas"]["AuthenticatorTransport"][] | null;
+            /** @description The type of credential. */
+            type: string;
+        };
         /** @example {
          *       "error": "TOTP is already enabled. To rotate your TOTP secret, disable it first and then enable it again."
          *     } */
@@ -321,6 +371,24 @@ export interface components {
          * @enum {string}
          */
         AttestationFormat: "packed" | "tpm" | "android-key" | "android-safetynet" | "fido-u2f" | "apple" | "none";
+        /** @description <https://w3c.github.io/webauthn/#dictdef-authenticationextensionsclientoutputs>
+         *     The default option here for Options are None, so it can be derived */
+        AuthenticationExtensionsClientOutputs: {
+            /** @description Indicates whether the client used the provided appid extension */
+            appid?: boolean | null;
+            hmac_get_secret?: null | components["schemas"]["HmacGetSecretOutput"];
+        };
+        /** @description <https://w3c.github.io/webauthn/#authenticatorassertionresponse> */
+        AuthenticatorAssertionResponseRaw: {
+            /** @description Raw authenticator data. */
+            authenticatorData: string;
+            /** @description Signed client data. */
+            clientDataJSON: string;
+            /** @description Signature */
+            signature: string;
+            /** @description Optional userhandle. */
+            userHandle?: string | null;
+        };
         /**
          * @description The authenticator attachment hint. This is NOT enforced, and is only used
          *     to help a user select a relevant authenticator type.
@@ -438,6 +506,22 @@ export interface components {
         };
         /** @enum {string} */
         FirstFactor: "password" | "webauthn" | "pgp";
+        /** @description The inputs to the hmac secret if it was created during registration.
+         *
+         *     <https://fidoalliance.22org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#sctn-hmac-secret-extension> */
+        HmacGetSecretInput: {
+            /** @description Retrieve a symmetric secrets from the authenticator with this input. */
+            output1: string;
+            /** @description Rotate the secret in the same operation. */
+            output2?: string | null;
+        };
+        /** @description The response to a hmac get secret request. */
+        HmacGetSecretOutput: {
+            /** @description Output of HMAC(Salt 1 || Client Secret) */
+            output1: string;
+            /** @description Output of HMAC(Salt 2 || Client Secret) */
+            output2?: string | null;
+        };
         /** @example {
          *       "error": "Invalid 2FA code"
          *     } */
@@ -467,6 +551,12 @@ export interface components {
             /** @description Username or email address */
             username: string;
         };
+        /**
+         * @description Request in residentkey workflows that conditional mediation should be used
+         *     in the UI, or not.
+         * @enum {string}
+         */
+        Mediation: "conditional";
         OptionsRepsonse: {
             options: components["schemas"]["FirstFactor"][];
             recent_factor?: null | components["schemas"]["FirstFactor"];
@@ -507,6 +597,24 @@ export interface components {
             recovery_codes: components["schemas"]["PublicRecoveryCodeFactor"];
             totp?: null | components["schemas"]["PublicTOTPFactor"];
             webauthn: components["schemas"]["PublicWebAuthnFactor"][];
+        };
+        /** @description A client response to an authentication challenge. This contains all required
+         *     information to asses and assert trust in a credentials legitimacy, followed
+         *     by authentication to a user.
+         *
+         *     You should not need to handle the inner content of this structure - you should
+         *     provide this to the correctly handling function of Webauthn only. */
+        PublicKeyCredential: {
+            /** @description Unsigned Client processed extensions. */
+            extensions?: components["schemas"]["AuthenticationExtensionsClientOutputs"];
+            /** @description The credential Id, likely base64 */
+            id: string;
+            /** @description The binary of the credential id. */
+            rawId: string;
+            /** @description The authenticator response. */
+            response: components["schemas"]["AuthenticatorAssertionResponseRaw"];
+            /** @description The authenticator type. */
+            type: string;
         };
         /** @description <https://w3c.github.io/webauthn/#dictionary-makecredentialoptions> */
         PublicKeyCredentialCreationOptions: {
@@ -550,6 +658,25 @@ export interface components {
          * @enum {string}
          */
         PublicKeyCredentialHints: "security-key" | "client-device" | "hybrid";
+        /** @description The requested options for the authentication */
+        PublicKeyCredentialRequestOptions: {
+            /** @description The set of credentials that are allowed to sign this challenge. */
+            allowCredentials: components["schemas"]["AllowCredentials"][];
+            /** @description The challenge that should be signed by the authenticator. */
+            challenge: string;
+            extensions?: null | components["schemas"]["RequestAuthenticationExtensions"];
+            /** @description Hints defining which types credentials may be used in this operation. */
+            hints?: components["schemas"]["PublicKeyCredentialHints"][] | null;
+            /** @description The relying party ID. */
+            rpId: string;
+            /**
+             * Format: int32
+             * @description The timeout for the authenticator in case of no interaction.
+             */
+            timeout?: number | null;
+            /** @description The verification policy the browser will request. */
+            userVerification: components["schemas"]["UserVerificationPolicy"];
+        };
         PublicPGPFactor: {
             display_name: string;
             fingerprint: string;
@@ -631,6 +758,26 @@ export interface components {
             id: string;
             /** @description The name of the relying party. */
             name: string;
+        };
+        /** @description Extension option inputs for PublicKeyCredentialRequestOptions
+         *
+         *     Implements \[AuthenticatorExtensionsClientInputs\] from the spec */
+        RequestAuthenticationExtensions: {
+            /** @description The `appid` extension options */
+            appid?: string | null;
+            hmacGetSecret?: null | components["schemas"]["HmacGetSecretInput"];
+            /** @description ⚠️  - Browsers do not support this!
+             *     Uvm */
+            uvm?: boolean | null;
+        };
+        /** @description A JSON serializable challenge which is issued to the user's webbrowser
+         *     for handling. This is meant to be opaque, that is, you should not need
+         *     to inspect or alter the content of the struct - you should serialise it
+         *     and transmit it to the client only. */
+        RequestChallengeResponse: {
+            mediation?: null | components["schemas"]["Mediation"];
+            /** @description The options. */
+            publicKey: components["schemas"]["PublicKeyCredentialRequestOptions"];
         };
         /** @description Extension option inputs for PublicKeyCredentialCreationOptions.
          *
@@ -950,6 +1097,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invalid2faCode"];
+                };
+            };
+        };
+    };
+    webauthn_finish_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicKeyCredential"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessfulLoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+        };
+    };
+    webauthn_start_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestChallengeResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
         };

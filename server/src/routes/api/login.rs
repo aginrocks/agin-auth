@@ -3,6 +3,7 @@ mod password;
 mod pgp;
 mod recovery_codes;
 mod totp;
+mod webauthn;
 
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -18,6 +19,7 @@ pub fn routes() -> Vec<Route> {
         totp::routes(),
         recovery_codes::routes(),
         pgp::routes(),
+        webauthn::routes(),
     ]
     .concat()
 }

@@ -82,6 +82,12 @@ pub struct WebAuthnFactor {
     pub display_name: String,
 }
 
+impl From<WebAuthnFactor> for Bson {
+    fn from(value: WebAuthnFactor) -> Self {
+        bson::to_bson(&value).unwrap()
+    }
+}
+
 impl WebAuthnFactor {
     pub fn to_public(&self) -> PublicWebAuthnFactor {
         PublicWebAuthnFactor {

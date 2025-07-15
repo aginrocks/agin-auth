@@ -629,3 +629,103 @@ pub struct TokenBinding {
     /// id
     pub id: Option<String>,
 }
+
+// Types related to authentication (Assertion)
+
+/// The requested options for the authentication
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicKeyCredentialRequestOptions {
+    /// The challenge that should be signed by the authenticator.
+    #[schema(value_type = String)]
+    pub challenge: base64urlsafedata::Base64UrlSafeData,
+    /// The timeout for the authenticator in case of no interaction.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u32>,
+    /// The relying party ID.
+    pub rp_id: String,
+    /// The set of credentials that are allowed to sign this challenge.
+    pub allow_credentials: Vec<AllowCredentials>,
+    /// The verification policy the browser will request.
+    pub user_verification: UserVerificationPolicy,
+
+    /// Hints defining which types credentials may be used in this operation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hints: Option<Vec<PublicKeyCredentialHints>>,
+
+    /// extensions.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extensions: Option<RequestAuthenticationExtensions>,
+}
+
+/// Request in residentkey workflows that conditional mediation should be used
+/// in the UI, or not.
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum Mediation {
+    /// Discovered credentials are presented to the user in a dialog.
+    /// Conditional UI is used. See <https://github.com/w3c/webauthn/wiki/Explainer:-WebAuthn-Conditional-UI>
+    /// <https://w3c.github.io/webappsec-credential-management/#enumdef-credentialmediationrequirement>
+    Conditional,
+}
+
+/// A JSON serializable challenge which is issued to the user's webbrowser
+/// for handling. This is meant to be opaque, that is, you should not need
+/// to inspect or alter the content of the struct - you should serialise it
+/// and transmit it to the client only.
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestChallengeResponse {
+    /// The options.
+    pub public_key: PublicKeyCredentialRequestOptions,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// The mediation requested
+    pub mediation: Option<Mediation>,
+}
+
+/// <https://w3c.github.io/webauthn/#authenticatorassertionresponse>
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct AuthenticatorAssertionResponseRaw {
+    /// Raw authenticator data.
+    #[serde(rename = "authenticatorData")]
+    #[schema(value_type = String)]
+    pub authenticator_data: base64urlsafedata::Base64UrlSafeData,
+
+    /// Signed client data.
+    #[serde(rename = "clientDataJSON")]
+    #[schema(value_type = String)]
+    pub client_data_json: base64urlsafedata::Base64UrlSafeData,
+
+    /// Signature
+    #[schema(value_type = String)]
+    pub signature: base64urlsafedata::Base64UrlSafeData,
+
+    /// Optional userhandle.
+    #[serde(rename = "userHandle")]
+    #[schema(value_type = Option<String>)]
+    pub user_handle: Option<base64urlsafedata::Base64UrlSafeData>,
+}
+
+/// A client response to an authentication challenge. This contains all required
+/// information to asses and assert trust in a credentials legitimacy, followed
+/// by authentication to a user.
+///
+/// You should not need to handle the inner content of this structure - you should
+/// provide this to the correctly handling function of Webauthn only.
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct PublicKeyCredential {
+    /// The credential Id, likely base64
+    pub id: String,
+    /// The binary of the credential id.
+    #[serde(rename = "rawId")]
+    #[schema(value_type = String)]
+    pub raw_id: base64urlsafedata::Base64UrlSafeData,
+    /// The authenticator response.
+    pub response: AuthenticatorAssertionResponseRaw,
+    /// Unsigned Client processed extensions.
+    #[serde(default)]
+    pub extensions: AuthenticationExtensionsClientOutputs,
+    /// The authenticator type.
+    #[serde(rename = "type")]
+    pub type_: String,
+}
