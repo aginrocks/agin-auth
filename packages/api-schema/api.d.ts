@@ -272,7 +272,7 @@ export interface paths {
          * Finish WebAuthn setup
          * @description Requires a previous call to `/api/settings/factors/webauthn/start` to initiate the registration process.
          */
-        post: operations["webauthn_start_setup"];
+        post: operations["webauthn_finish_setup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1162,7 +1162,7 @@ export interface operations {
             };
         };
     };
-    webauthn_start_setup: {
+    webauthn_finish_setup: {
         parameters: {
             query?: never;
             header?: never;

@@ -21,7 +21,7 @@ const PATH: &str = "/api/settings/factors/webauthn/finish";
 
 pub fn routes() -> Vec<Route> {
     vec![(
-        routes!(webauthn_start_setup),
+        routes!(webauthn_finish_setup),
         RouteProtectionLevel::Authenticated,
     )]
 }
@@ -45,7 +45,7 @@ struct WebAuthnFinishSuccess {
     ),
     tag = "Settings"
 )]
-async fn webauthn_start_setup(
+async fn webauthn_finish_setup(
     Extension(user_id): Extension<UserId>,
     Extension(state): Extension<AppState>,
     session: Session,
@@ -71,7 +71,7 @@ async fn webauthn_start_setup(
         .database
         .collection::<User>("users")
         .find_one_and_update(
-            doc! { "$id": *user_id },
+            doc! { "_id": *user_id },
             doc! {
                 "$push": {
                     "auth_factors.webauthn": {
