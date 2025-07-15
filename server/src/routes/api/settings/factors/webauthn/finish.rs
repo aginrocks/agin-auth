@@ -38,7 +38,7 @@ struct WebAuthnFinishSuccess {
 #[utoipa::path(
     method(post),
     path = PATH,
-    request_body = String,
+    request_body = crate::webauthn::types::RegisterPublicKeyCredential,
     responses(
         (status = OK, description = "Success", body = WebAuthnFinishSuccess, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),

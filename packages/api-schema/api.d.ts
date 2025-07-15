@@ -329,6 +329,15 @@ export interface components {
          * @enum {string}
          */
         AuthenticatorAttachment: "platform" | "cross-platform";
+        /** @description <https://w3c.github.io/webauthn/#authenticatorattestationresponse> */
+        AuthenticatorAttestationResponseRaw: {
+            /** @description <https://w3c.github.io/webauthn/#dom-authenticatorattestationresponse-attestationobject> */
+            attestationObject: string;
+            /** @description <https://w3c.github.io/webauthn/#dom-authenticatorresponse-clientdatajson> */
+            clientDataJSON: string;
+            /** @description <https://w3c.github.io/webauthn/#dom-authenticatorattestationresponse-gettransports> */
+            transports?: components["schemas"]["AuthenticatorTransport"][] | null;
+        };
         /** @description <https://www.w3.org/TR/webauthn/#dictdef-authenticatorselectioncriteria> */
         AuthenticatorSelectionCriteria: {
             authenticatorAttachment?: null | components["schemas"]["AuthenticatorAttachment"];
@@ -376,6 +385,15 @@ export interface components {
         CreationChallengeResponse: {
             /** @description The options. */
             publicKey: components["schemas"]["PublicKeyCredentialCreationOptions"];
+        };
+        /** @description <https://www.w3.org/TR/webauthn-3/#sctn-authenticator-credential-properties-extension> */
+        CredProps: {
+            /** @description A user agent supplied hint that this credential *may* have created a resident key. It is
+             *     retured from the user agent, not the authenticator meaning that this is an unreliable
+             *     signal.
+             *
+             *     Note that this extension is UNSIGNED and may have been altered by page javascript. */
+            rk: boolean;
         };
         /** @description The desired options for the client's use of the `credProtect` extension
          *
@@ -564,6 +582,48 @@ export interface components {
             last_name: string;
             password: string;
             preferred_username: string;
+        };
+        /** @description A client response to a registration challenge. This contains all required
+         *     information to assess and assert trust in a credential's legitimacy, followed
+         *     by registration to a user.
+         *
+         *     You should not need to handle the inner content of this structure - you should
+         *     provide this to the correctly handling function of Webauthn only.
+         *     <https://w3c.github.io/webauthn/#iface-pkcredential> */
+        RegisterPublicKeyCredential: {
+            /** @description Unsigned Client processed extensions. */
+            extensions?: components["schemas"]["RegistrationExtensionsClientOutputs"];
+            /** @description The id of the PublicKey credential, likely in base64.
+             *
+             *     This is NEVER actually
+             *     used in a real registration, because the true credential ID is taken from the
+             *     attestation data. */
+            id: string;
+            /** @description The id of the credential, as binary.
+             *
+             *     This is NEVER actually
+             *     used in a real registration, because the true credential ID is taken from the
+             *     attestation data. */
+            rawId: string;
+            /** @description <https://w3c.github.io/webauthn/#dom-publickeycredential-response> */
+            response: components["schemas"]["AuthenticatorAttestationResponseRaw"];
+            /** @description The type of credential. */
+            type: string;
+        };
+        /** @description <https://w3c.github.io/webauthn/#dictdef-authenticationextensionsclientoutputs>
+         *     The default option here for Options are None, so it can be derived */
+        RegistrationExtensionsClientOutputs: {
+            /** @description Indicates whether the client used the provided appid extension */
+            appid?: boolean | null;
+            cred_props?: null | components["schemas"]["CredProps"];
+            cred_protect?: null | components["schemas"]["CredentialProtectionPolicy"];
+            /** @description Indicates if the client successfully applied a HMAC Secret */
+            hmac_secret?: boolean | null;
+            /**
+             * Format: int32
+             * @description Indicates the current minimum PIN length
+             */
+            min_pin_length?: number | null;
         };
         /** @description Relying Party Entity */
         RelyingParty: {
@@ -1111,7 +1171,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "text/plain": string;
+                "application/json": components["schemas"]["RegisterPublicKeyCredential"];
             };
         };
         responses: {
