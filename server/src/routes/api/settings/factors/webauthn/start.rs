@@ -1,11 +1,12 @@
 use axum::{Extension, Json};
-use color_eyre::eyre::{Context, ContextCompat};
+use base64urlsafedata::HumanBinaryData;
+use color_eyre::eyre::{Context, ContextCompat, Result};
 use serde::Deserialize;
 use tower_sessions::Session;
 use utoipa::ToSchema;
 use utoipa_axum::routes;
 use validator::Validate;
-use webauthn_rs::prelude::CreationChallengeResponse;
+use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, Passkey};
 
 use crate::{
     axum_error::AxumResult,
@@ -57,7 +58,15 @@ async fn webauthn_start_setup(
 
     session.remove_value("reg_state").await?;
 
-    // let exclude_credentials
+    let exclude_credentials = user
+        .auth_factors
+        .webauthn
+        .iter()
+        .map(|f| -> Result<CredentialID> {
+            let passkey: Passkey = serde_json::from_str(&f.serialized_key)?;
+            Ok(passkey.cred_id().clone())
+        })
+        .collect::<Result<Vec<HumanBinaryData>, _>>()?;
 
     let (ccr, reg_state) = state
         .webauthn
@@ -65,7 +74,7 @@ async fn webauthn_start_setup(
             user.uuid,
             &user.preferred_username,
             &user.display_name,
-            None,
+            Some(exclude_credentials),
         )
         .wrap_err("Challenge generation failed")?;
 
