@@ -33,7 +33,7 @@ pub fn routes() -> Vec<Route> {
         (status = OK, description = "Success", body = crate::webauthn::types::RequestChallengeResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),
     ),
-    tag = "Settings"
+    tag = "Login"
 )]
 async fn webauthn_start_login(
     Extension(user_id): Extension<UserId>,
