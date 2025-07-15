@@ -1,19 +1,9 @@
-import { FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
 import { LoginIcon } from '@components/ui/login-icon';
-import {
-    IconAlertCircle,
-    IconArrowRight,
-    IconClock,
-    IconFingerprint,
-    IconKey,
-} from '@tabler/icons-react';
-import { useFormContext } from 'react-hook-form';
-import { FormSchema, screenAtom } from './page';
+import { IconAlertCircle, IconFingerprint } from '@tabler/icons-react';
+import { screenAtom } from './page';
 import { LinkComponent } from '@components/ui/link';
-import { $api } from '@lib/providers/api';
 import { useSetAtom } from 'jotai';
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@components/ui/input-otp';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useWebAuthn2FA } from '@lib/hooks';
 import { Button } from '@components/ui/button';
 import { useHotkeys } from '@mantine/hooks';
