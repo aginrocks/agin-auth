@@ -56,7 +56,7 @@ async fn get_login_options(
         return Ok(Json(OptionsRepsonse {
             options: vec![
                 FirstFactor::Password,
-                FirstFactor::WebAuthn,
+                FirstFactor::WebAuthnPasswordless,
                 FirstFactor::Pgp,
             ],
             recent_factor: None,
@@ -72,7 +72,7 @@ async fn get_login_options(
     }
 
     if !user.auth_factors.webauthn.is_empty() {
-        options.push(FirstFactor::WebAuthn);
+        options.push(FirstFactor::WebAuthnPasswordless);
     }
 
     if user.auth_factors.pgp.is_some() {

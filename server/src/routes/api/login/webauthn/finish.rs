@@ -9,7 +9,10 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, WebAuthnFactor, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::{RouteProtectionLevel, api::login::SuccessfulLoginResponse},
+    routes::{
+        RouteProtectionLevel,
+        api::{AuthState, login::SuccessfulLoginResponse},
+    },
     state::AppState,
 };
 
@@ -98,6 +101,10 @@ async fn webauthn_finish_login(
                 }
             },
         )
+        .await?;
+
+    session
+        .insert("auth_state", AuthState::Authenticated)
         .await?;
 
     Ok(Json(SuccessfulLoginResponse {

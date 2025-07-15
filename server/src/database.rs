@@ -210,7 +210,7 @@ pub struct PublicAuthFactors {
 #[serde(rename_all = "lowercase")]
 pub enum FirstFactor {
     Password,
-    WebAuthn,
+    WebAuthnPasswordless,
     Pgp,
 }
 
