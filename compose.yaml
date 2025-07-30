@@ -1,0 +1,16 @@
+services:
+    valkey:
+        image: valkey/valkey:latest
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        volumes:
+            - ./cache:/data
+    mongodb:
+        image: mongodb/mongodb-community-server:6.0.19-ubi8
+        ports:
+            - 27017:27017
+        volumes:
+            - ./data:/data/db
+        restart: always
+        user: 1000:1000
