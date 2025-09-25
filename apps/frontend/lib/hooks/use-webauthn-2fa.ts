@@ -2,13 +2,18 @@
 import { $api } from '@lib/providers/api';
 import { useCallback, useState } from 'react';
 import { Base64 } from 'js-base64';
+import { useLoginSuccess } from './use-login-success';
 
 export function useWebAuthn2FA() {
     const [isPending, setIsPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const { onSuccess } = useLoginSuccess();
+
     const begin = $api.useMutation('post', '/api/login/webauthn/start');
-    const finish = $api.useMutation('post', '/api/login/webauthn/finish');
+    const finish = $api.useMutation('post', '/api/login/webauthn/finish', {
+        onSuccess,
+    });
 
     const loginAsync = useCallback(async () => {
         try {

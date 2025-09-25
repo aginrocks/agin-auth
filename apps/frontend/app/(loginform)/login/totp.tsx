@@ -9,18 +9,21 @@ import { useSetAtom } from 'jotai';
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@components/ui/input-otp';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLoginSuccess } from '@lib/hooks';
 
 export function Totp() {
     const setScreen = useSetAtom(screenAtom);
+    const router = useRouter();
 
     const form = useFormContext<FormSchema>();
 
     const code = form.watch('totp');
 
+    const { onSuccess } = useLoginSuccess();
+
     const totpLogin = $api.useMutation('post', '/api/login/totp', {
-        onSuccess: ({ two_factor_required, second_factors }) => {
-            alert('Success!');
-        },
+        onSuccess,
         onError: (e) => {
             form.setError('totp', {
                 message: e?.error || 'Login failed.',

@@ -1,33 +1,26 @@
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@components/ui/form';
+import { FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
 import { LoginIcon } from '@components/ui/login-icon';
-import {
-    IconArrowLeft,
-    IconArrowRight,
-    IconHelp,
-    IconKey,
-    IconLifebuoy,
-    IconPassword,
-} from '@tabler/icons-react';
+import { IconArrowRight, IconLifebuoy } from '@tabler/icons-react';
 import { useFormContext } from 'react-hook-form';
 import { FormSchema, screenAtom } from './page';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
 import { LinkComponent } from '@components/ui/link';
-import Link from 'next/link';
 import { $api } from '@lib/providers/api';
-import { Separator } from '@components/ui/separator';
 import { useSetAtom } from 'jotai';
-import { twofactorOptionsAtom } from './two-factor-options';
+import { useRouter } from 'next/navigation';
+import { useLoginSuccess } from '@lib/hooks';
 
 export function RecoveryCode() {
     const setScreen = useSetAtom(screenAtom);
+    const router = useRouter();
 
     const form = useFormContext<FormSchema>();
 
+    const { onSuccess } = useLoginSuccess();
+
     const recoveryCodeLogin = $api.useMutation('post', '/api/login/recovery-codes', {
-        onSuccess: ({ two_factor_required, second_factors, recent_factor }) => {
-            alert('Success!');
-        },
+        onSuccess,
         onError: (e) => {
             form.setError('recovery_code', {
                 message: e?.error || 'Login failed.',

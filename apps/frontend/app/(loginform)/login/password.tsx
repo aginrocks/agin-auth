@@ -1,35 +1,26 @@
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@components/ui/form';
+import { FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
 import { LoginIcon } from '@components/ui/login-icon';
-import { IconArrowLeft, IconArrowRight, IconKey, IconPassword } from '@tabler/icons-react';
+import { IconArrowRight, IconPassword } from '@tabler/icons-react';
 import { useFormContext } from 'react-hook-form';
 import { FormSchema, screenAtom } from './page';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
 import { LinkComponent } from '@components/ui/link';
-import Link from 'next/link';
 import { $api } from '@lib/providers/api';
-import { Separator } from '@components/ui/separator';
 import { useSetAtom } from 'jotai';
-import { twofactorOptionsAtom } from './two-factor-options';
+import { useLoginSuccess } from '@lib/hooks';
 
 export function Password() {
     const setScreen = useSetAtom(screenAtom);
-    const setOptions = useSetAtom(twofactorOptionsAtom);
 
     const form = useFormContext<FormSchema>();
 
     const username = form.watch('username');
 
+    const { onSuccess } = useLoginSuccess();
+
     const passwordLogin = $api.useMutation('post', '/api/login/password', {
-        onSuccess: ({ two_factor_required, second_factors, recent_factor }) => {
-            if (!two_factor_required || !second_factors) return;
-
-            setOptions(second_factors);
-
-            if (second_factors.length === 1) return setScreen(second_factors[0]);
-            if (recent_factor) return setScreen(recent_factor);
-            setScreen('two-factor-options');
-        },
+        onSuccess,
         onError: (e) => {
             form.setError('password', {
                 message: e?.error || 'Login failed.',
