@@ -7,17 +7,26 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export const SCOPES_MAP: Record<string, LoginOptionProps> = {
-    profile: {
-        title: 'General profile info',
-        icon: IconUser,
+export const SCOPES_LIST: { scope: string; props: LoginOptionProps }[] = [
+    {
+        scope: 'profile',
+        props: {
+            title: 'View general profile info',
+            icon: IconUser,
+        },
     },
-    email: {
-        title: 'Email address',
-        icon: IconMail,
+    {
+        scope: 'email',
+        props: {
+            title: 'View your email address',
+            icon: IconMail,
+        },
     },
-    offline_access: {
-        title: 'Stay signed in for longer',
-        icon: IconHourglass,
+    {
+        scope: 'offline_access',
+        props: {
+            title: 'Stay signed in for longer',
+            icon: IconHourglass,
+        },
     },
-};
+];
