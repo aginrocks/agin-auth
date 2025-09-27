@@ -1,11 +1,10 @@
-use base64::{Engine, engine::general_purpose};
-use rand::RngCore;
+use rand::{Rng, distr::Alphanumeric, rngs::ThreadRng};
 
 pub fn generate_client_id() -> String {
-    let mut rng = rand::rngs::ThreadRng::default();
+    let rng = ThreadRng::default();
 
-    let mut bytes = [0u8; 24];
-    rng.fill_bytes(&mut bytes);
-
-    general_purpose::STANDARD.encode(bytes)
+    rng.sample_iter(&Alphanumeric)
+        .take(24)
+        .map(char::from)
+        .collect()
 }

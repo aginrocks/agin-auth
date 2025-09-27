@@ -1,11 +1,9 @@
 'use client';
 import { Button } from '@components/ui/button';
-import { LinkComponent } from '@components/ui/link';
 import { LoginIcon } from '@components/ui/login-icon';
 import { LoginOption } from '@components/ui/login-option';
 import { SCOPES_LIST } from '@lib/utils';
-import { IconExternalLink, IconPassword } from '@tabler/icons-react';
-import Link from 'next/link';
+import { IconExternalLink } from '@tabler/icons-react';
 import { useSearchParams } from 'next/navigation';
 
 export default function Page() {
