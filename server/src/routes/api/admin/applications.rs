@@ -3,32 +3,25 @@ use axum_valid::Valid;
 use color_eyre::eyre::{Context, ContextCompat};
 use futures::TryStreamExt;
 use mongodb::bson::doc;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::AxumResult,
     database::{Application, EditApplicationBody, PartialApplication, PublicApplication},
     middlewares::require_auth::{ForbiddenError, UnauthorizedError},
-    routes::{RouteProtectionLevel, api::CreateSuccess},
+    routes::api::CreateSuccess,
     state::AppState,
     utils::generate_client_id,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/admin/applications";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(get_applications, create_application),
-        RouteProtectionLevel::Public,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(get_applications, create_application))
 }
 
 /// Get applications
 #[utoipa::path(
     method(get),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = Vec<PublicApplication>, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),
@@ -58,7 +51,7 @@ async fn get_applications(
 /// Create application
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = PublicApplication, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),

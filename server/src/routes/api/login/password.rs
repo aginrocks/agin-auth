@@ -8,21 +8,19 @@ use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{FirstFactor, get_second_factors, get_user, set_recent_factor},
-    routes::{RouteProtectionLevel, api::AuthState},
+    routes::api::AuthState,
     state::AppState,
 };
 
-use super::{Route, SuccessfulLoginResponse};
+use super::SuccessfulLoginResponse;
 
-const PATH: &str = "/api/login/password";
-
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(login_with_password), RouteProtectionLevel::Public)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(login_with_password))
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -43,7 +41,7 @@ pub struct InvalidUserOrPass {
 /// If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = InvalidUserOrPass, content_type = "application/json"),

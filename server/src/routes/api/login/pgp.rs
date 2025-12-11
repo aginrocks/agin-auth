@@ -1,7 +1,9 @@
+use utoipa_axum::router::OpenApiRouter;
+
+use crate::state::AppState;
+
 mod challenge;
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [challenge::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().nest("/challenge", challenge::routes())
 }

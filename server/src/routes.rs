@@ -1,19 +1,10 @@
 pub mod api;
 
-use utoipa_axum::router::UtoipaMethodRouter;
+use utoipa::OpenApi;
+use utoipa_axum::router::OpenApiRouter;
 
-use crate::state::AppState;
+use crate::{ApiDoc, state::AppState};
 
-pub fn routes() -> Vec<Route> {
-    [api::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api::routes())
 }
-
-#[derive(Clone)]
-pub enum RouteProtectionLevel {
-    Public,
-    BeforeTwoFactor,
-    Authenticated,
-    Admin,
-}
-
-type Route = (UtoipaMethodRouter<AppState>, RouteProtectionLevel);

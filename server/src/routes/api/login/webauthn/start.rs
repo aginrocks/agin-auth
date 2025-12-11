@@ -1,26 +1,18 @@
 use axum::{Extension, Json};
 use color_eyre::eyre::{self, Context, ContextCompat, Result};
 use tower_sessions::Session;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use webauthn_rs::prelude::{Passkey, RequestChallengeResponse};
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::get_user_by_id,
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/login/webauthn/start";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(webauthn_start_login),
-        RouteProtectionLevel::BeforeTwoFactor,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(webauthn_start_login))
 }
 
 /// Start WebAuthn 2FA
@@ -28,7 +20,7 @@ pub fn routes() -> Vec<Route> {
 /// **This endpoint can only be used as a second factor.** For passwordless authentication, see `/api/login/webauthn/passwordless/start`. Request a challenge to start the WebAuthn login process. After receiving a response from the browser, the client should call the `/api/login/webauthn/finish` endpoint to complete the login.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = crate::webauthn::types::RequestChallengeResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),

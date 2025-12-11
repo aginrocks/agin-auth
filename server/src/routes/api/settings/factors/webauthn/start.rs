@@ -4,7 +4,7 @@ use color_eyre::eyre::{Context, ContextCompat, Result};
 use serde::Deserialize;
 use tower_sessions::Session;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
 use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, Passkey};
 
@@ -12,19 +12,11 @@ use crate::{
     axum_error::AxumResult,
     database::get_user_by_id,
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors/webauthn/start";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(webauthn_start_setup),
-        RouteProtectionLevel::Authenticated,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(webauthn_start_setup))
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
@@ -38,7 +30,7 @@ pub struct WebAuthnRegistrationBody {
 /// Request a challenge to start the WebAuthn registration process. After receiving a response from the browser, the client should call the `/api/settings/factors/webauthn/finish` endpoint to complete the registration.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = WebAuthnRegistrationBody,
     responses(
         (status = OK, description = "Success", body = crate::webauthn::types::CreationChallengeResponse, content_type = "application/json"),

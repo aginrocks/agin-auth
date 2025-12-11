@@ -6,25 +6,17 @@ use rand::{Rng, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::get_user,
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/login/pgp/challenge";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(get_pgp_challenge, respond_to_pgp_challenge),
-        RouteProtectionLevel::Public,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(get_pgp_challenge, respond_to_pgp_challenge))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -43,7 +35,7 @@ pub struct PgpChallengeConfig {
 /// Returns a challenge that needs to be signed with the user's PGP key.
 #[utoipa::path(
     method(get),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = PgpChallengeResponse, content_type = "application/json"),
     ),
@@ -86,7 +78,7 @@ struct PgpChallengeBody {
 /// Sign the challenge obtained from `GET /api/login/pgp/challenge` with the user's PGP key and send the signature here to complete the login process.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = PgpChallengeBody,
     responses(
         (status = OK, description = "Success", body = PgpChallengeResponse, content_type = "application/json"),

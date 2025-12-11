@@ -7,18 +7,21 @@ mod settings;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use utoipa::{ToSchema, schema};
+use utoipa_axum::router::OpenApiRouter;
 
-use super::Route;
+use crate::state::AppState;
 
-pub fn routes() -> Vec<Route> {
-    [
-        health::routes(),
-        login::routes(),
-        register::routes(),
-        settings::routes(),
-        admin::routes(),
-    ]
-    .concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    let auth = OpenApiRouter::new()
+        .nest("/admin", admin::routes())
+        .nest("/settings", settings::routes());
+
+    let public = OpenApiRouter::new()
+        .nest("/health", health::routes())
+        .nest("/login", login::routes())
+        .nest("/register", register::routes());
+
+    auth.merge(public)
 }
 
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug, Display)]

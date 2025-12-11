@@ -6,29 +6,22 @@ pub mod webauthn;
 use axum::{Extension, Json};
 use color_eyre::eyre::ContextCompat;
 use mongodb::bson::doc;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::AxumResult,
     database::{PublicAuthFactors, User},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors";
-
-pub fn routes() -> Vec<Route> {
-    [
-        vec![(routes!(get_factors), RouteProtectionLevel::Authenticated)],
-        totp::routes(),
-        recovery_codes::routes(),
-        pgp::routes(),
-        webauthn::routes(),
-    ]
-    .concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(get_factors))
+        .nest("/totp", totp::routes())
+        .nest("/recovery-codes", recovery_codes::routes())
+        .nest("/pgp", pgp::routes())
+        .nest("/webauthn", webauthn::routes())
 }
 
 /// Get factors
@@ -36,7 +29,7 @@ pub fn routes() -> Vec<Route> {
 /// Gets all authentication factors for the current user.
 #[utoipa::path(
     method(get),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = PublicAuthFactors, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),

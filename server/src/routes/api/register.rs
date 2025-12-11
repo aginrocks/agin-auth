@@ -8,24 +8,20 @@ use color_eyre::eyre::{self, ContextCompat};
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{AuthFactors, PartialUser, PasswordFactor, User},
-    routes::{RouteProtectionLevel, api::CreateSuccess},
+    routes::api::CreateSuccess,
     state::AppState,
     validators::username_validator,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/register";
-
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(register), RouteProtectionLevel::Public)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(register))
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
@@ -50,7 +46,7 @@ struct RegisterBody {
 }
 
 #[derive(Serialize, ToSchema)]
-#[schema(example = json!({"error": "User with this username or email already existsd"}))]
+#[schema(example = json!({"error": "User with this username or email already exists"}))]
 pub struct BadRequestError {
     error: String,
 }
@@ -64,7 +60,7 @@ pub struct RegisterSuccess {
 /// Register
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = CreateSuccess, content_type = "application/json"),
         (status = BAD_REQUEST, description = "BadRequest", body = BadRequestError, content_type = "application/json"),

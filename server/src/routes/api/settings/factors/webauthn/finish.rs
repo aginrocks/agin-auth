@@ -4,26 +4,18 @@ use mongodb::bson::doc;
 use serde::Serialize;
 use tower_sessions::Session;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use webauthn_rs::prelude::*;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::User,
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors/webauthn/finish";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(webauthn_finish_setup),
-        RouteProtectionLevel::Authenticated,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(webauthn_finish_setup))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -37,7 +29,7 @@ struct WebAuthnFinishSuccess {
 /// Requires a previous call to `/api/settings/factors/webauthn/start` to initiate the registration process.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = crate::webauthn::types::RegisterPublicKeyCredential,
     responses(
         (status = OK, description = "Success", body = WebAuthnFinishSuccess, content_type = "application/json"),

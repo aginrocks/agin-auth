@@ -6,14 +6,17 @@ use color_eyre::eyre::{self, Context, ContextCompat};
 use serde::{Deserialize, Serialize};
 use totp_rs::TOTP;
 use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
 use validator::Validate;
 
-use crate::axum_error::{AxumError, AxumResult};
+use crate::{
+    axum_error::{AxumError, AxumResult},
+    state::AppState,
+};
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [enable::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().nest("/enable", enable::routes())
+    // .nest("/disable", disable::routes())
 }
 
 pub fn create_totp_instance(

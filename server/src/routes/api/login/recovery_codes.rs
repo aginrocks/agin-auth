@@ -4,28 +4,20 @@ use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{SecondFactor, User, get_user_by_id, set_recent_factor},
     middlewares::require_auth::UserId,
-    routes::{
-        RouteProtectionLevel,
-        api::{AuthState, settings::factors::recovery_codes::verify_recovery_code},
-    },
+    routes::api::{AuthState, settings::factors::recovery_codes::verify_recovery_code},
     state::AppState,
 };
 
-use super::{Route, SuccessfulLoginResponse};
+use super::SuccessfulLoginResponse;
 
-const PATH: &str = "/api/login/recovery-codes";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(login_with_recovery_code),
-        RouteProtectionLevel::BeforeTwoFactor,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(login_with_recovery_code))
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -44,7 +36,7 @@ pub struct InvalidRecoveryCode {
 /// **This endpoint can only be used as a second factor.** Each recovery code can be used only one time.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = InvalidRecoveryCode, content_type = "application/json"),

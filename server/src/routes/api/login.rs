@@ -7,21 +7,18 @@ mod webauthn;
 
 use serde::Serialize;
 use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
 
-use crate::database::SecondFactor;
+use crate::{database::SecondFactor, state::AppState};
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [
-        options::routes(),
-        password::routes(),
-        totp::routes(),
-        recovery_codes::routes(),
-        pgp::routes(),
-        webauthn::routes(),
-    ]
-    .concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .nest("/options", options::routes())
+        .nest("/password", password::routes())
+        .nest("/totp", totp::routes())
+        .nest("/recovery-codes", recovery_codes::routes())
+        .nest("/pgp", pgp::routes())
+        .nest("/webauthn", webauthn::routes())
 }
 
 #[derive(Serialize, ToSchema)]

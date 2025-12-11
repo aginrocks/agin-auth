@@ -3,32 +3,22 @@ use color_eyre::eyre;
 use mongodb::bson::doc;
 use tower_sessions::Session;
 
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{SecondFactor, get_user_by_id, set_recent_factor},
     middlewares::require_auth::UserId,
-    routes::{
-        RouteProtectionLevel,
-        api::{
-            AuthState,
-            login::SuccessfulLoginResponse,
-            settings::factors::totp::{Invalid2faCode, TotpCodeBody, verify_totp},
-        },
+    routes::api::{
+        AuthState,
+        login::SuccessfulLoginResponse,
+        settings::factors::totp::{Invalid2faCode, TotpCodeBody, verify_totp},
     },
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/login/totp";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(login_with_totp),
-        RouteProtectionLevel::BeforeTwoFactor,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(login_with_totp))
 }
 
 /// Log in with TOTP
@@ -36,7 +26,7 @@ pub fn routes() -> Vec<Route> {
 /// **This endpoint can only be used as a second factor.** TOTP is not considered secure enough to be used as a primary authentication method.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = TotpCodeBody,
     responses(
         (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),

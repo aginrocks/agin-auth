@@ -1,8 +1,12 @@
+use utoipa_axum::router::OpenApiRouter;
+
+use crate::state::AppState;
+
 mod finish;
 mod start;
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [start::routes(), finish::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .nest("/start", start::routes())
+        .nest("/finish", finish::routes())
 }

@@ -8,27 +8,19 @@ use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use totp_rs::Secret;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::{RouteProtectionLevel, api::settings::factors::totp::create_totp_instance},
+    routes::api::settings::factors::totp::create_totp_instance,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors/totp/enable";
-
-pub fn routes() -> Vec<Route> {
-    [
-        vec![(routes!(enable_totp), RouteProtectionLevel::Authenticated)],
-        confirm::routes(),
-    ]
-    .concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(enable_totp))
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
@@ -59,7 +51,7 @@ pub struct AlreadyEnabledError {
 /// Generates TOTP secret and saves it. To fully enable TOTP, a call to `/api/settings/factors/totp/enable/confirm` is required.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = EnableTotpBody,
     responses(
         (status = OK, description = "Success", body = EnableTotpResponse, content_type = "application/json"),

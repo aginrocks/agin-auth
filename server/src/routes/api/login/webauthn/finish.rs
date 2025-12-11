@@ -2,29 +2,19 @@ use axum::{Extension, Json};
 use color_eyre::eyre::{self, Context, ContextCompat, Result};
 use mongodb::bson::doc;
 use tower_sessions::Session;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use webauthn_rs::prelude::*;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, WebAuthnFactor, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::{
-        RouteProtectionLevel,
-        api::{AuthState, login::SuccessfulLoginResponse},
-    },
+    routes::api::{AuthState, login::SuccessfulLoginResponse},
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/login/webauthn/finish";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(webauthn_finish_login),
-        RouteProtectionLevel::BeforeTwoFactor,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(webauthn_finish_login))
 }
 
 /// Finish WebAuthn 2FA
@@ -32,7 +22,7 @@ pub fn routes() -> Vec<Route> {
 /// **This endpoint can only be used as a second factor.** For passwordless authentication, see `/api/login/webauthn/passwordless/start`. Requires a previous call to `/api/login/webauthn/start` to initiate the login process.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = crate::webauthn::types::PublicKeyCredential,
     responses(
         (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),

@@ -1,7 +1,9 @@
+use utoipa_axum::router::OpenApiRouter;
+
+use crate::state::AppState;
+
 mod enable;
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [enable::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().nest("/enable", enable::routes())
 }

@@ -1,7 +1,9 @@
+use utoipa_axum::router::OpenApiRouter;
+
+use crate::state::AppState;
+
 pub mod factors;
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [factors::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().nest("/factors", factors::routes())
 }

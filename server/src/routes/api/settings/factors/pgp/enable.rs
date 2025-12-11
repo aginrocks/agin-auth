@@ -8,27 +8,18 @@ use pgp::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::User,
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors/pgp/enable";
-
-pub fn routes() -> Vec<Route> {
-    [vec![(
-        routes!(enable_pgp),
-        RouteProtectionLevel::Authenticated,
-    )]]
-    .concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(enable_pgp))
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
@@ -53,7 +44,7 @@ pub struct EnablePgpResponse {
 /// Enables PGP authentication factor for the user. This factor can only be used as a first factor.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = EnablePgpBody,
     responses(
         (status = OK, description = "Success", body = EnablePgpResponse, content_type = "application/json"),

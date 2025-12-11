@@ -4,28 +4,18 @@ use color_eyre::eyre::{self, ContextCompat};
 use mongodb::bson::doc;
 use serde::Serialize;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::{
-        RouteProtectionLevel,
-        api::settings::factors::totp::{TotpCodeBody, verify_totp},
-    },
+    routes::api::settings::factors::totp::{TotpCodeBody, verify_totp},
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors/totp/enable/confirm";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(confirm_enabling_totp),
-        RouteProtectionLevel::Authenticated,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(confirm_enabling_totp))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -47,7 +37,7 @@ pub struct AlreadyEnabledError {
 /// Confirm enabling TOTP by providing the TOTP code.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     request_body = TotpCodeBody,
     responses(
         (status = OK, description = "Success", body = ConfirmTotpResponse, content_type = "application/json"),

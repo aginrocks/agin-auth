@@ -3,28 +3,20 @@ use color_eyre::eyre::{self};
 use mongodb::bson::doc;
 use serde::Serialize;
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{RecoveryCodeFactor, User},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::{
-        RouteProtectionLevel,
-        api::settings::factors::recovery_codes::{generate_recovery_codes, hash_recovery_codes},
+    routes::api::settings::factors::recovery_codes::{
+        generate_recovery_codes, hash_recovery_codes,
     },
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/settings/factors/recovery-codes/enable";
-
-pub fn routes() -> Vec<Route> {
-    vec![(
-        routes!(enable_recovery_codes),
-        RouteProtectionLevel::Authenticated,
-    )]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(enable_recovery_codes))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -38,7 +30,7 @@ pub struct EnableRecoveryCodesResponse {
 /// **Calling this endpoint again will regenerate the recovery codes.** The old codes will be forever lost.
 #[utoipa::path(
     method(post),
-    path = PATH,
+    path = "/",
     responses(
         (status = OK, description = "Success", body = EnableRecoveryCodesResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),

@@ -6,16 +6,16 @@ use argon2::{
 };
 use color_eyre::eyre::{self, Context, Result};
 use rand::{Rng, distr::Alphanumeric};
+use utoipa_axum::router::OpenApiRouter;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::RecoveryCodeFactor,
+    state::AppState,
 };
 
-use super::Route;
-
-pub fn routes() -> Vec<Route> {
-    [enable::routes()].concat()
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().nest("/enable", enable::routes())
 }
 
 pub fn generate_recovery_code(len: usize) -> String {

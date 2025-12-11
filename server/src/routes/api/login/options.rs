@@ -2,23 +2,17 @@ use axum::{Extension, Json, extract::Query};
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use utoipa_axum::routes;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     axum_error::AxumResult,
     database::{FirstFactor, get_user},
-    routes::RouteProtectionLevel,
     state::AppState,
 };
 
-use super::Route;
-
-const PATH: &str = "/api/login/options";
-
-pub fn routes() -> Vec<Route> {
-    vec![(routes!(get_login_options), RouteProtectionLevel::Public)]
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(get_login_options))
 }
-
 #[derive(Serialize, ToSchema)]
 struct OptionsRepsonse {
     options: Vec<FirstFactor>,
@@ -37,7 +31,7 @@ struct OptionsQuery {
 /// Gets available login options for the user. If the user is not found, returns only password option.
 #[utoipa::path(
     method(get),
-    path = PATH,
+    path = "/",
     params(
         ("username" = String, Query, description = "Username or email address of the user the factors are requested for"),
     ),
