@@ -1,5 +1,6 @@
 mod axum_error;
 mod database;
+mod entity;
 mod extractors;
 mod init;
 mod middlewares;
