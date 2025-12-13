@@ -1,0 +1,11 @@
+[package]
+name = "auth_core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = "0.1.89"
+color-eyre = "0.6.5"
+thiserror = "2.0.17"
+utoipa = "5.4.0"
+validator = "0.20.0"
