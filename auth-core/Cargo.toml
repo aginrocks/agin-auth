@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 async-trait = "0.1.89"
 color-eyre = "0.6.5"
+serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.17"
 utoipa = "5.4.0"
 validator = "0.20.0"
