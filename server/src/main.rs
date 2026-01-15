@@ -2,6 +2,7 @@ mod axum_error;
 mod database;
 mod entity;
 mod extractors;
+mod factors;
 mod init;
 mod middlewares;
 mod mongo_id;

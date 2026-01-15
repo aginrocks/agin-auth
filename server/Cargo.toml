@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 argon2 = "0.5.3"
 async-trait = "0.1.88"
+auth_core = { version = "0.1.0", path = "../auth-core" }
 axum = { version = "0.8.4", features = ["macros"] }
 axum-valid = "0.24.0"
 base32 = "0.5.1"
