@@ -16,7 +16,7 @@ pub fn factor(args: TokenStream, input: TokenStream) -> TokenStream {
         Err(e) => return e.write_errors().into(),
     };
 
-    let input = syn::parse_macro_input!(input as syn::ItemStruct);
+    let input = syn::parse_macro_input!(input as syn::ItemImpl);
 
     match factor::factor(args, input) {
         Ok(x) => x,

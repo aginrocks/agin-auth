@@ -15,6 +15,7 @@ impl Factor for PasswordFactor {
     type EnableRequest = NoData;
     type EnableResponse = NoData;
 
+    // Enable Docs here
     async fn enable(
         &self,
         args: Self::EnableRequest,
@@ -25,6 +26,7 @@ impl Factor for PasswordFactor {
     type DisableRequest = NoData;
     type DisableResponse = NoData;
 
+    // Disable Docs here
     async fn disable(&self, args: Self::DisableRequest) -> Result<(), FactorDisableError> {
         todo!()
     }
@@ -32,6 +34,7 @@ impl Factor for PasswordFactor {
     type AuthenticateRequest = NoData;
     type AuthenticateResponse = NoData;
 
+    // Authenticate Docs here
     async fn authenticate(&self, args: Self::AuthenticateRequest) -> Result<(), FactorError> {
         todo!()
     }
