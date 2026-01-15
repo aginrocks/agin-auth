@@ -36,6 +36,19 @@ pub struct InvalidUserOrPass {
     error: String,
 }
 
+trait A {
+    type T;
+}
+
+#[derive(ToSchema)]
+struct B {}
+
+impl A for B {
+    type T = InvalidUserOrPass;
+}
+
+type C = <B as A>::T;
+
 /// Log in with password
 ///
 /// If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.

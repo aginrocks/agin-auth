@@ -3,11 +3,15 @@ use auth_core::{
     EnableResponse, Factor, FactorDisableError, FactorEnableError, FactorError, FactorRole,
     FlowType, NoData, SecurityLevel,
 };
+use macros::factor;
 
 pub struct PasswordFactor;
 
 #[async_trait]
+// #[factor]
 impl Factor for PasswordFactor {
+    const NAME: &'static str = "Password";
+    const SLUG: &'static str = "password";
     const FLOW_TYPE: FlowType = FlowType::Simple;
     const SECURITY_LEVEL: SecurityLevel = SecurityLevel::Knowledge;
     const ROLE: FactorRole = FactorRole::Primary;

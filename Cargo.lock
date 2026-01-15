@@ -2436,6 +2436,7 @@ name = "macros"
 version = "0.1.0"
 dependencies = [
  "darling 0.21.3",
+ "paste",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -4252,6 +4253,7 @@ dependencies = [
  "hex",
  "http",
  "http-serde-ext",
+ "macros",
  "mongodb",
  "openidconnect",
  "partial_struct",

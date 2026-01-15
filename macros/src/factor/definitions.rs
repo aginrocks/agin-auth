@@ -1,6 +1,6 @@
 use strum::IntoStaticStr;
 
-#[derive(IntoStaticStr)]
+#[derive(IntoStaticStr, Copy, Clone)]
 pub enum EndpointBasePath {
     #[strum(serialize = "/auth/factors")]
     Authentication,
@@ -30,13 +30,13 @@ pub struct HandlerDefinition {
     pub error_type: &'static str,
 }
 
-static AUTHENTICATE: HandlerDefinition = HandlerDefinition {
+pub static AUTHENTICATE: HandlerDefinition = HandlerDefinition {
     method: "authenticate",
     endpoint_base_path: EndpointBasePath::Authentication,
     endpoint: "authenticate",
     request_type: "AuthenticateRequest",
     response_type: "AuthenticateResponse",
-    error_type: "FactorError",
+    error_type: "::auth_core::FactorError",
 };
 
-static METHODS: &[&HandlerDefinition] = &[&AUTHENTICATE];
+pub static METHODS: &[&HandlerDefinition] = &[&AUTHENTICATE];

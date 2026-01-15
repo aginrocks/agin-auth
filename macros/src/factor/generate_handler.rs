@@ -1,6 +1,6 @@
 use quote::format_ident;
 
-
+use crate::factor::definitions::{EndpointBasePath, HandlerDefinition};
 
 // User-provided args for handler generation
 pub struct HandlerUserArgs {
@@ -8,10 +8,10 @@ pub struct HandlerUserArgs {
     pub base_struct: syn::TypePath,
 
     /// Name of the factor (e.g. Password)
-    pub factor_name: String,
+    // pub factor_name: String,
 
     /// A slug that will appear in the URL (e.g. password)
-    pub factor_slug: String,
+    // pub factor_slug: String,
 
     /// Extracted doc comment for the handler
     pub doc: Option<String>,
@@ -29,8 +29,9 @@ fn associated_type(base: &syn::TypePath, trait_path: &str, member: &str) -> syn:
 }
 
 pub fn generate_handler(
-    definition: HandlerDefinition,
+    definition: &HandlerDefinition,
     args: HandlerUserArgs,
+    i: u32,
 ) -> proc_macro2::TokenStream {
     let doc = if let Some(doc) = args.doc {
         quote::quote! {
@@ -40,26 +41,46 @@ pub fn generate_handler(
         quote::quote! {}
     };
 
-    let path = format!(
-        "{}/{}/{}",
-        definition.endpoint_base_path, args.factor_slug, definition.endpoint_name
-    );
+    let base_path: &'static str = definition.endpoint_base_path.into();
+    let endpoint_name = definition.endpoint;
+
+    let slug = associated_type(&args.base_struct, "::auth_core::Factor", "SLUG");
 
     let success = associated_type(
         &args.base_struct,
         "::auth_core::Factor",
-        definition.response_type_name,
+        definition.response_type,
     );
 
+    let error = syn::parse_str::<syn::Path>(definition.error_type).unwrap();
+
+    let error_status = match definition.endpoint_base_path {
+        EndpointBasePath::Authentication => quote::quote! { UNAUTHORIZED },
+        EndpointBasePath::Management => quote::quote! { BAD_REQUEST },
+    };
+
+    let tag = match definition.endpoint_base_path {
+        EndpointBasePath::Authentication => "Auth",
+        EndpointBasePath::Management => "Settings",
+    };
+
+    let success_ident = format_ident!("__Success_{i}");
+
     quote::quote! {
+        type #success_ident = #success;
+
         #doc
         #[::utoipa::path(
             method(post),
-            path = #path,
+            path = format!("{}/{}/{}", #base_path, #slug, #endpoint_name),
             responses(
-                (status = OK, description = "Success", body = #success)
+                (status = OK, description = "Success", body = #success_ident, content_type = "application/json"),
+                (status = #error_status, description = "Error", body = #error, content_type = "application/json")
             )
+            tag = #tag
         )]
-        fn foo() {}
+        async fn foo() -> String {
+            String::from(format!("{}/{}/{}", #base_path, #slug, #endpoint_name))
+        }
     }
 }
