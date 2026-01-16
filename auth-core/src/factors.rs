@@ -173,13 +173,19 @@ pub trait Factor {
     type DisableResponse: Send + Sync + ToSchema;
 
     /// Disable the specified factor
-    async fn disable(&self, args: Self::DisableRequest) -> Result<(), FactorDisableError>;
+    async fn disable(
+        &self,
+        args: Self::DisableRequest,
+    ) -> Result<Self::DisableResponse, FactorDisableError>;
 
     type AuthenticateRequest: Send + Sync + ToSchema;
     type AuthenticateResponse: Send + Sync + ToSchema;
 
     /// Authenticate using the specified factor (or request a challenge)
-    async fn authenticate(&self, args: Self::AuthenticateRequest) -> Result<(), FactorError>;
+    async fn authenticate(
+        &self,
+        args: Self::AuthenticateRequest,
+    ) -> Result<AuthenticateResponse<Self::AuthenticateResponse>, FactorError>;
 }
 
 #[async_trait]

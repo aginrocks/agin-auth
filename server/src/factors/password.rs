@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use auth_core::{
-    EnableResponse, Factor, FactorDisableError, FactorEnableError, FactorError, FactorRole,
-    FlowType, NoData, SecurityLevel,
+    AuthenticateResponse, EnableResponse, Factor, FactorDisableError, FactorEnableError,
+    FactorError, FactorRole, FlowType, NoData, SecurityLevel,
 };
 use macros::factor;
 
@@ -29,7 +29,10 @@ impl Factor for PasswordFactor {
     type DisableResponse = NoData;
 
     // Disable Docs here
-    async fn disable(&self, args: Self::DisableRequest) -> Result<(), FactorDisableError> {
+    async fn disable(
+        &self,
+        args: Self::DisableRequest,
+    ) -> Result<Self::DisableResponse, FactorDisableError> {
         todo!()
     }
 
@@ -37,7 +40,10 @@ impl Factor for PasswordFactor {
     type AuthenticateResponse = NoData;
 
     // Authenticate Docs here
-    async fn authenticate(&self, args: Self::AuthenticateRequest) -> Result<(), FactorError> {
+    async fn authenticate(
+        &self,
+        args: Self::AuthenticateRequest,
+    ) -> Result<AuthenticateResponse<Self::AuthenticateResponse>, FactorError> {
         todo!()
     }
 }

@@ -62,6 +62,12 @@ pub fn generate_handler(
         capitalize_first(&definition.method.to_camel_case())
     );
 
+    let function_name = format_ident!(
+        "{}_{}",
+        args.factor_slug.to_snake_case(),
+        definition.method.to_snake_case()
+    );
+
     quote::quote! {
         type #success_ident = #success;
 
@@ -75,7 +81,7 @@ pub fn generate_handler(
             ),
             tag = #tag
         )]
-        pub async fn foo() -> String {
+        pub async fn #function_name() -> String {
             String::from(#path)
         }
     }
