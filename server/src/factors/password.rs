@@ -8,7 +8,7 @@ use macros::factor;
 pub struct PasswordFactor;
 
 #[async_trait]
-#[factor(name = "Password", slug = "password")]
+#[factor(slug = "password")]
 impl Factor for PasswordFactor {
     const FLOW_TYPE: FlowType = FlowType::Simple;
     const SECURITY_LEVEL: SecurityLevel = SecurityLevel::Knowledge;

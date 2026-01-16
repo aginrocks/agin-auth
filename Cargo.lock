@@ -2447,7 +2447,6 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "darling 0.21.3",
- "paste",
  "proc-macro-error",
  "proc-macro2",
  "quote",

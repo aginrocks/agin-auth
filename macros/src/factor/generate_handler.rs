@@ -12,11 +12,11 @@ pub struct HandlerUserArgs<'a> {
     /// Base struct type that the macro is applied to
     pub base_struct: &'a syn::TypePath,
 
-    /// Name of the factor (e.g. Password)
-    pub factor_name: &'a str,
-
     /// A slug that will appear in the URL (e.g. password)
     pub factor_slug: &'a str,
+
+    /// Full path of the trait that the impl block is implementing
+    pub applied_trait: &'a syn::Path,
 
     /// Extracted doc comment for the handler
     pub doc: Vec<Attribute>,
@@ -30,13 +30,13 @@ pub fn generate_handler(
 
     let request = associated_type(
         args.base_struct,
-        "::auth_core::Factor",
+        args.applied_trait,
         definition.request_type,
     )?;
 
     let success = associated_type(
         args.base_struct,
-        "::auth_core::Factor",
+        args.applied_trait,
         definition.response_type,
     )?;
 

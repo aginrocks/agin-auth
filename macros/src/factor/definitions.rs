@@ -44,4 +44,50 @@ pub static AUTHENTICATE: HandlerDefinition = HandlerDefinition {
     error_type: "::auth_core::FactorError",
 };
 
-pub static METHODS: &[&HandlerDefinition] = &[&AUTHENTICATE];
+pub static ENABLE: HandlerDefinition = HandlerDefinition {
+    method: "enable",
+    endpoint_base_path: EndpointBasePath::Management,
+    endpoint: "enable",
+    request_type: "EnableRequest",
+    response_type: "EnableResponse",
+    response_generic: Some("::auth_core::EnableResponse"),
+    error_type: "::auth_core::FactorEnableError",
+};
+
+pub static DISABLE: HandlerDefinition = HandlerDefinition {
+    method: "disable",
+    endpoint_base_path: EndpointBasePath::Management,
+    endpoint: "disable",
+    request_type: "DisableRequest",
+    response_type: "DisableResponse",
+    response_generic: None,
+    error_type: "::auth_core::FactorDisableError",
+};
+
+pub static CONFIRM_ENABLE: HandlerDefinition = HandlerDefinition {
+    method: "confirm_enable",
+    endpoint_base_path: EndpointBasePath::Management,
+    endpoint: "enable/confirm",
+    request_type: "ConfirmEnableRequest",
+    response_type: "ConfirmEnableResponse",
+    response_generic: Some("::auth_core::ConfirmEnableResponse"),
+    error_type: "::auth_core::FactorEnableError",
+};
+
+pub static CHALLENGE_RESPONSE: HandlerDefinition = HandlerDefinition {
+    method: "authenticate_challenge_response",
+    endpoint_base_path: EndpointBasePath::Authentication,
+    endpoint: "authenticate/challenge-response",
+    request_type: "ChallengeResponse",
+    response_type: "ChallengeAuthenticationResult",
+    response_generic: Some("::auth_core::AuthenticateResponse"),
+    error_type: "::auth_core::FactorError",
+};
+
+pub static METHODS: &[&HandlerDefinition] = &[
+    &AUTHENTICATE,
+    &ENABLE,
+    &DISABLE,
+    &CONFIRM_ENABLE,
+    &CHALLENGE_RESPONSE,
+];

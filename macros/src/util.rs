@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
 use quote::format_ident;
-use syn::Attribute;
 
 pub fn associated_type(
     base: &syn::TypePath,
-    trait_path: &str,
+    trait_path: &syn::Path,
     member: &str,
 ) -> Result<syn::TypePath, darling::Error> {
-    let trait_path = syn::parse_str::<syn::Path>(trait_path)?;
     let member_ident = format_ident!("{member}");
 
     let tokens = quote::quote! {

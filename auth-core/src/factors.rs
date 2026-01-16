@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use color_eyre::eyre::Error;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use utoipa::{ToSchema, openapi::schema};
+use utoipa::ToSchema;
 
 // TODO: Fix error types
 

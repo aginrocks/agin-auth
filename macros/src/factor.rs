@@ -23,6 +23,15 @@ pub fn factor(
         }
     };
 
+    let trait_ty = match &input.trait_ {
+        Some((_, path, _)) => path.clone(),
+        None => {
+            return Err(darling::Error::custom(
+                "Expected the impl block to implement a trait",
+            ));
+        }
+    };
+
     let methods = extract_methods(input.clone());
     let mut tokens = input.into_token_stream();
     let mut routes = Vec::new();
@@ -42,8 +51,8 @@ pub fn factor(
         let args = generate_handler::HandlerUserArgs {
             base_struct: &self_ty,
             doc,
-            factor_name: &args.name,
             factor_slug: &args.slug,
+            applied_trait: &trait_ty,
         };
 
         let (name, handler) = generate_handler(supported_method, args)?;
