@@ -122,7 +122,7 @@ pub struct AuthenticateResponse<T> {
     pub fully_authenticated: bool,
 
     // TODO: Add a stricter type
-    /// A list of factors to choose frum for the next authentication step.
+    /// A list of factors to choose from for the next authentication step.
     pub next: Vec<String>,
 
     #[serde(flatten)]

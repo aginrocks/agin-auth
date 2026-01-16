@@ -39,7 +39,7 @@ impl Factor for PasswordFactor {
     type AuthenticateRequest = NoData;
     type AuthenticateResponse = NoData;
 
-    // Authenticate Docs here
+    /// Authenticate Docs here
     async fn authenticate(
         &self,
         args: Self::AuthenticateRequest,

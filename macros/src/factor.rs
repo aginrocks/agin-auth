@@ -1,10 +1,14 @@
 use quote::ToTokens;
 
-use crate::factor::{definitions::AUTHENTICATE, generate_handler::generate_handler};
+use crate::{
+    factor::{definitions::METHODS, generate_handler::generate_handler, router::generate_router},
+    util::extract_methods,
+};
 
 pub mod args;
 pub mod definitions;
 mod generate_handler;
+mod router;
 
 pub fn factor(
     args: args::FactorArgs,
@@ -19,21 +23,36 @@ pub fn factor(
         }
     };
 
-    let args = generate_handler::HandlerUserArgs {
-        base_struct: self_ty,
-        doc: None,
-        factor_name: args.name,
-        factor_slug: args.slug,
-    };
+    let methods = extract_methods(input.clone());
+    let mut tokens = input.into_token_stream();
+    let mut routes = Vec::new();
 
-    let handler = generate_handler(&AUTHENTICATE, args);
+    for supported_method in METHODS {
+        let Some(method_impl) = methods.get(supported_method.method) else {
+            continue;
+        };
 
-    let original_impl = input.into_token_stream();
+        let doc = method_impl
+            .attrs
+            .iter()
+            .filter(|a| a.path().is_ident("doc"))
+            .cloned()
+            .collect();
 
-    let output = quote::quote! {
-        #original_impl
-        #handler
-    };
+        let args = generate_handler::HandlerUserArgs {
+            base_struct: &self_ty,
+            doc,
+            factor_name: &args.name,
+            factor_slug: &args.slug,
+        };
 
-    Ok(output.into())
+        let (name, handler) = generate_handler(supported_method, args)?;
+        routes.push(name);
+        tokens.extend(handler);
+    }
+
+    let router = generate_router(routes);
+    tokens.extend(router);
+
+    Ok(tokens.into())
 }

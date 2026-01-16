@@ -1,45 +1,51 @@
 use inflector::Inflector;
 use quote::format_ident;
+use syn::Attribute;
 
 use crate::{
     factor::definitions::{EndpointBasePath, HandlerDefinition},
-    util::{associated_type, capitalize_first},
+    util::{associated_type, capitalize_first, wrap_with_generic},
 };
 
 // User-provided args for handler generation
-pub struct HandlerUserArgs {
+pub struct HandlerUserArgs<'a> {
     /// Base struct type that the macro is applied to
-    pub base_struct: syn::TypePath,
+    pub base_struct: &'a syn::TypePath,
 
     /// Name of the factor (e.g. Password)
-    pub factor_name: String,
+    pub factor_name: &'a str,
 
     /// A slug that will appear in the URL (e.g. password)
-    pub factor_slug: String,
+    pub factor_slug: &'a str,
 
     /// Extracted doc comment for the handler
-    pub doc: Option<String>,
+    pub doc: Vec<Attribute>,
 }
 
 pub fn generate_handler(
     definition: &HandlerDefinition,
     args: HandlerUserArgs,
-) -> proc_macro2::TokenStream {
-    let doc = if let Some(doc) = args.doc {
-        quote::quote! {
-            #[doc = #doc]
-        }
-    } else {
-        quote::quote! {}
-    };
+) -> Result<(syn::Ident, proc_macro2::TokenStream), darling::Error> {
+    let doc = args.doc;
+
+    let request = associated_type(
+        args.base_struct,
+        "::auth_core::Factor",
+        definition.request_type,
+    )?;
 
     let success = associated_type(
-        &args.base_struct,
+        args.base_struct,
         "::auth_core::Factor",
         definition.response_type,
-    );
+    )?;
 
-    let error = syn::parse_str::<syn::Path>(definition.error_type).unwrap();
+    let success = match definition.response_generic {
+        Some(generic) => wrap_with_generic(&success, generic)?,
+        None => success,
+    };
+
+    let error = syn::parse_str::<syn::Path>(definition.error_type)?;
 
     let error_status = match definition.endpoint_base_path {
         EndpointBasePath::Authentication => quote::quote! { UNAUTHORIZED },
@@ -58,8 +64,14 @@ pub fn generate_handler(
 
     let success_ident = format_ident!(
         "{}{}Response",
-        capitalize_first(&args.factor_slug.to_camel_case()),
-        capitalize_first(&definition.method.to_camel_case())
+        capitalize_first(&definition.method.to_camel_case()),
+        capitalize_first(&args.factor_slug.to_camel_case())
+    );
+
+    let request_ident = format_ident!(
+        "{}{}Request",
+        capitalize_first(&definition.method.to_camel_case()),
+        capitalize_first(&args.factor_slug.to_camel_case())
     );
 
     let function_name = format_ident!(
@@ -68,10 +80,11 @@ pub fn generate_handler(
         definition.method.to_snake_case()
     );
 
-    quote::quote! {
+    let tokens = quote::quote! {
         type #success_ident = #success;
+        type #request_ident = #request;
 
-        #doc
+        #(#doc)*
         #[::utoipa::path(
             method(post),
             path = #path,
@@ -81,8 +94,14 @@ pub fn generate_handler(
             ),
             tag = #tag
         )]
-        pub async fn #function_name() -> String {
-            String::from(#path)
+        pub async fn #function_name(
+            ::axum::Extension(state): ::axum::Extension<crate::state::AppState>,
+            session: ::tower_sessions::Session,
+            ::axum::Json(body): ::axum::Json<#request_ident>,
+        ) -> crate::axum_error::AxumResult<::axum::Json<#success>> {
+            todo!()
         }
-    }
+    };
+
+    Ok((function_name, tokens))
 }

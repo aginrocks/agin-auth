@@ -5,3 +5,4 @@ files
 config.toml
 node_modules
 data
+cache

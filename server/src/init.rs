@@ -37,7 +37,7 @@ pub async fn init_axum(
     state: AppState,
     session_layer: SessionManagerLayer<RedisStore<Pool>>,
 ) -> Result<Router> {
-    let router = crate::routes::routes();
+    let router = crate::routes::routes().merge(crate::factors::routes());
 
     let (router, api) = router.with_state(state.clone()).split_for_parts();
 
