@@ -2,24 +2,30 @@ use async_trait::async_trait;
 use color_eyre::eyre::Error;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use utoipa::ToSchema;
+use utoipa::{ToSchema, openapi::schema};
 
-#[derive(Debug, Error)]
+// TODO: Fix error types
+
+#[derive(Debug, Error, ToSchema)]
+#[schema(as = String)]
 pub enum FactorError {
     #[error("Factor is not enabled")]
     NotEnabled,
 
     #[error(transparent)]
+    #[schema(value_type = String)]
     Unauthorized(Error),
 
     #[error(transparent)]
+    #[schema(value_type = String)]
     BadRequest(Error),
 
     #[error(transparent)]
+    #[schema(value_type = String)]
     Other(#[from] Error),
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum FactorEnableError {
     #[error("Factor is already enabled")]
     AlreadyEnabled,
@@ -28,7 +34,7 @@ pub enum FactorEnableError {
     Other(#[from] FactorError),
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum FactorDisableError {
     #[error("Factor is not enabled")]
     NotEnabled,
@@ -133,12 +139,6 @@ pub struct NoData;
 /// Factors define a trust level that can be then matched by `Policy` to enforce security requirements.
 #[async_trait]
 pub trait Factor {
-    /// Human-readable name of the factor.
-    const NAME: &'static str;
-
-    /// A slug that will appear in the URL.
-    const SLUG: &'static str;
-
     /// Defines the authentication flow type of the factor.
     const FLOW_TYPE: FlowType;
 
@@ -147,14 +147,6 @@ pub trait Factor {
 
     /// Defines if the factor is sufficient alone or requires other factors.
     const ROLE: FactorRole;
-
-    fn name(&self) -> &'static str {
-        Self::NAME
-    }
-
-    fn slug(&self) -> &'static str {
-        Self::SLUG
-    }
 
     fn flow_type(&self) -> FlowType {
         Self::FLOW_TYPE

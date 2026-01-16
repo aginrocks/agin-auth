@@ -1,6 +1,6 @@
-use strum::IntoStaticStr;
+use strum::{Display, IntoStaticStr};
 
-#[derive(IntoStaticStr, Copy, Clone)]
+#[derive(IntoStaticStr, Copy, Clone, Display)]
 pub enum EndpointBasePath {
     #[strum(serialize = "/auth/factors")]
     Authentication,

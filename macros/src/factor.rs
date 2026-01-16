@@ -7,7 +7,7 @@ pub mod definitions;
 mod generate_handler;
 
 pub fn factor(
-    // args: args::FactorArgs,
+    args: args::FactorArgs,
     input: syn::ItemImpl,
 ) -> Result<proc_macro::TokenStream, darling::Error> {
     let self_ty = match &*input.self_ty {
@@ -22,9 +22,11 @@ pub fn factor(
     let args = generate_handler::HandlerUserArgs {
         base_struct: self_ty,
         doc: None,
+        factor_name: args.name,
+        factor_slug: args.slug,
     };
 
-    let handler = generate_handler(&AUTHENTICATE, args, 0);
+    let handler = generate_handler(&AUTHENTICATE, args);
 
     let original_impl = input.into_token_stream();
 
