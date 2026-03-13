@@ -2,7 +2,7 @@ use axum::{Extension, Json};
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{self};
-use rand::{Rng, distr::Alphanumeric};
+use rand::{RngExt, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;

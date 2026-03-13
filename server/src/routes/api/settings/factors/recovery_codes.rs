@@ -5,7 +5,7 @@ use argon2::{
     password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
 use color_eyre::eyre::{self, Context, Result};
-use rand::{Rng, distr::Alphanumeric};
+use rand::{RngExt, distr::Alphanumeric};
 use utoipa_axum::router::OpenApiRouter;
 
 use crate::{

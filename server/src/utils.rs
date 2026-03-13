@@ -1,4 +1,4 @@
-use rand::{Rng, distr::Alphanumeric, rngs::ThreadRng};
+use rand::{RngExt, distr::Alphanumeric, rngs::ThreadRng};
 
 pub fn generate_client_id() -> String {
     let rng = ThreadRng::default();
