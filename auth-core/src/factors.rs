@@ -148,6 +148,9 @@ pub trait Factor {
     /// Defines if the factor is sufficient alone or requires other factors.
     const ROLE: FactorRole;
 
+    /// A slug that will appear in the URL (e.g. password)
+    const SLUG: &'static str;
+
     fn flow_type(&self) -> FlowType {
         Self::FLOW_TYPE
     }
@@ -158,6 +161,10 @@ pub trait Factor {
 
     fn role(&self) -> FactorRole {
         Self::ROLE
+    }
+
+    fn slug(&self) -> &'static str {
+        Self::SLUG
     }
 
     type EnableRequest: Send + Sync + ToSchema;

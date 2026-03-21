@@ -1,4 +1,5 @@
 mod factor;
+mod register;
 mod util;
 
 use proc_macro::TokenStream;
@@ -23,4 +24,11 @@ pub fn factor(args: TokenStream, input: TokenStream) -> TokenStream {
         Ok(x) => x,
         Err(e) => e.write_errors().into(),
     }
+}
+
+/// Collect all factors and generate Axum router with them.
+/// Also generate an enum for SeaORM for storage.
+#[proc_macro]
+pub fn register_factors(input: TokenStream) -> TokenStream {
+    todo!()
 }
