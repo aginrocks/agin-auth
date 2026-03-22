@@ -4,6 +4,8 @@ mod util;
 
 use proc_macro::TokenStream;
 
+use crate::register::list::FactorList;
+
 /// Generate Axum handlers annotated with `utoipa` for the factor.
 /// This allows for end-to-end typing of authentication factors in the API documentation.
 #[proc_macro_attribute]
@@ -30,5 +32,10 @@ pub fn factor(args: TokenStream, input: TokenStream) -> TokenStream {
 /// Also generate an enum for SeaORM for storage.
 #[proc_macro]
 pub fn register_factors(input: TokenStream) -> TokenStream {
-    todo!()
+    let input = syn::parse_macro_input!(input as FactorList);
+
+    match register::register(input) {
+        Ok(x) => x,
+        Err(e) => e.to_compile_error().into(),
+    }
 }

@@ -167,6 +167,9 @@ pub trait Factor {
         Self::SLUG
     }
 
+    /// Factor configuration stored in the database
+    type Config: Send + Sync + ToSchema + Serialize + for<'de> Deserialize<'de>;
+
     type EnableRequest: Send + Sync + ToSchema;
     type EnableResponse: Send + Sync + ToSchema;
 

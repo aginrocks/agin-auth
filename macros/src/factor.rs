@@ -80,6 +80,7 @@ pub fn factor(
     let router = generate_router(routes);
     tokens.extend(router);
 
+    // Validate the slug
     let slug_assertion = quote::quote! {
         const _: () = assert!(
             ::auth_core::str_eq(<#self_ty as ::auth_core::Factor>::SLUG, #slug),

@@ -14,6 +14,8 @@ impl Factor for PasswordFactor {
     const SECURITY_LEVEL: SecurityLevel = SecurityLevel::Knowledge;
     const ROLE: FactorRole = FactorRole::Primary;
 
+    type Config = NoData;
+
     type EnableRequest = NoData;
     type EnableResponse = NoData;
 

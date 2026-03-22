@@ -1,5 +1,5 @@
 use syn::{
-    Ident, LitStr, Path, Token,
+    LitStr, Path, Token,
     parse::{Parse, ParseStream},
 };
 
