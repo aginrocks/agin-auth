@@ -63,7 +63,7 @@ pub fn register(factor_list: FactorList) -> Result<proc_macro::TokenStream, syn:
     }
 
     let handler = quote! {
-        pub fn routes() -> OpenApiRouter<AppState> {
+        pub fn routes() -> ::utoipa_axum::router::OpenApiRouter<crate::state::AppState> {
             #router
         }
     };
