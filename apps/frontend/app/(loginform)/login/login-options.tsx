@@ -48,7 +48,7 @@ export function LoginOptions() {
             <div className="mt-4 flex flex-col gap-1">
                 <h1 className="font-semibold text-xl text-center">Choose Authentication Method</h1>
                 <p className="text-sm text-center text-muted-foreground">
-                    Select how you'd like to verify your identity to continue
+                    Select how you{"'"}d like to verify your identity to continue
                 </p>
             </div>
             <div className="w-sm mt-6 flex flex-col gap-3">

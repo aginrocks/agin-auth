@@ -9,6 +9,7 @@ export function LoginIcon({ children, className, ...props }: LoginIconProps) {
                 "size-14 rounded-xl border border-border/70 dark:border-border shadow-md flex justify-center items-center [&_svg:not([class*='size-'])]:size-6 text-muted-foreground",
                 className
             )}
+            {...props}
         >
             {children}
         </div>
