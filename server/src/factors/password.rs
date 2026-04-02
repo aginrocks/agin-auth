@@ -4,8 +4,15 @@ use auth_core::{
     FactorError, FactorRole, FlowType, NoData, SecurityLevel,
 };
 use macros::factor;
+use utoipa_axum::router::OpenApiRouter;
+
+use crate::state::AppState;
 
 pub struct PasswordFactor;
+
+pub fn routes() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().merge(factor())
+}
 
 #[async_trait]
 #[factor(slug = "password")]

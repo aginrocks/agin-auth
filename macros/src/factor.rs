@@ -1,7 +1,10 @@
 use quote::ToTokens;
 
 use crate::{
-    factor::{definitions::METHODS, generate_handler::generate_handler, router::generate_router},
+    factor::{
+        args::ImplKind, definitions::METHODS, generate_handler::generate_handler,
+        router::generate_router,
+    },
     util::{const_impl_exists, extract_methods},
 };
 
@@ -34,15 +37,11 @@ pub fn factor(
 
     let mut input = input;
 
-    let is_factor_impl = trait_ty
-        .segments
-        .last()
-        .map(|s| s.ident == "Factor")
-        .unwrap_or(false);
+    let impl_kind = ImplKind::detect(&trait_ty)?;
 
     let slug = args.slug.as_str();
     let skip_slug = const_impl_exists(&input, syn::parse_quote!(SLUG));
-    if !skip_slug && is_factor_impl {
+    if !skip_slug && impl_kind == ImplKind::Factor {
         let slug_item: syn::ImplItem = syn::parse_quote! {
             const SLUG: &'static str = #slug;
         };
@@ -77,14 +76,14 @@ pub fn factor(
         tokens.extend(handler);
     }
 
-    let router = generate_router(routes);
+    let router = generate_router(routes, impl_kind);
     tokens.extend(router);
 
     // Validate the slug
     let slug_assertion = quote::quote! {
         const _: () = assert!(
             ::auth_core::str_eq(<#self_ty as ::auth_core::Factor>::SLUG, #slug),
-            "slug mismatch"
+            "slug missmatch"
         );
     };
     tokens.extend(slug_assertion);
