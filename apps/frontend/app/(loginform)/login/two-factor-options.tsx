@@ -3,7 +3,6 @@ import {
     IconArrowRight,
     IconClock,
     IconFingerprint,
-    IconKey,
     IconLifebuoy,
     IconShieldLock,
 } from '@tabler/icons-react';

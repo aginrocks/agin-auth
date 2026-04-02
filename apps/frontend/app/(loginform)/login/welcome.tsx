@@ -82,7 +82,7 @@ export function Welcome() {
                     </Button>
                 </div>
                 <div className="text-muted-foreground text-center text-sm">
-                    Don't have an account?{' '}
+                    Don{"'"}t have an account?{' '}
                     <LinkComponent>
                         <Link href="/register">Sign Up</Link>
                     </LinkComponent>

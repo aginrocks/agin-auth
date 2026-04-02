@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { $api } from '@lib/providers/api';
 import { useCallback } from 'react';
 import { Base64 } from 'js-base64';

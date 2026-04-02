@@ -11,7 +11,7 @@ export default function Page() {
     const scopes = params.get('scopes')?.split(' ') || [];
     const validScopes = SCOPES_LIST.map((s) => s.scope).filter((s) => scopes.includes(s));
 
-    const username = 'User';
+    // const username = 'User';
     const appName = 'Test App';
 
     return (

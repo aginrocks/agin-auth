@@ -8,12 +8,10 @@ import { Button } from '@components/ui/button';
 import { LinkComponent } from '@components/ui/link';
 import { $api } from '@lib/providers/api';
 import { useSetAtom } from 'jotai';
-import { useRouter } from 'next/navigation';
 import { useLoginSuccess } from '@lib/hooks';
 
 export function RecoveryCode() {
     const setScreen = useSetAtom(screenAtom);
-    const router = useRouter();
 
     const form = useFormContext<FormSchema>();
 
