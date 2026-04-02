@@ -4,9 +4,10 @@ import { LoginIcon } from '@components/ui/login-icon';
 import { LoginOption } from '@components/ui/login-option';
 import { SCOPES_LIST } from '@lib/utils';
 import { IconExternalLink } from '@tabler/icons-react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function Page() {
+function AuthorizeContent() {
     const params = useSearchParams();
     const scopes = params.get('scopes')?.split(' ') || [];
     const validScopes = SCOPES_LIST.map((s) => s.scope).filter((s) => scopes.includes(s));
@@ -40,5 +41,13 @@ export default function Page() {
                 </div>
             </div>
         </>
+    );
+}
+
+export default function Page() {
+    return (
+        <Suspense>
+            <AuthorizeContent />
+        </Suspense>
     );
 }
