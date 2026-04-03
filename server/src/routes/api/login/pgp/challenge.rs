@@ -2,6 +2,7 @@ use axum::{Extension, Json};
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use color_eyre::eyre::{self};
+use pgp::composed::{Any, Deserializable, SignedPublicKey};
 use rand::{RngExt, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
@@ -11,9 +12,12 @@ use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::get_user,
+    database::{FirstFactor, get_second_factors, get_user, set_recent_factor},
+    routes::api::AuthState,
     state::AppState,
 };
+
+use super::super::SuccessfulLoginResponse;
 
 pub fn routes() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(get_pgp_challenge, respond_to_pgp_challenge))
@@ -81,7 +85,7 @@ struct PgpChallengeBody {
     path = "/",
     request_body = PgpChallengeBody,
     responses(
-        (status = OK, description = "Success", body = PgpChallengeResponse, content_type = "application/json"),
+        (status = OK, description = "Success", body = SuccessfulLoginResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = InvalidSignature, content_type = "application/json"),
     ),
     tag = "Login"
@@ -90,7 +94,7 @@ async fn respond_to_pgp_challenge(
     Extension(state): Extension<AppState>,
     session: Session,
     Valid(Json(body)): Valid<Json<PgpChallengeBody>>,
-) -> AxumResult<Json<PgpChallengeResponse>> {
+) -> AxumResult<Json<SuccessfulLoginResponse>> {
     let challenge_config = session
         .get::<PgpChallengeConfig>("login::pgp_challenge")
         .await?
@@ -112,17 +116,60 @@ async fn respond_to_pgp_challenge(
         return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
     }
 
-    // let (signature_message,_) = Message::from_string(&body.signature)
-    //     .map_err(|_| AxumError::bad_request(eyre::eyre!("Invalid signature format")))?;
+    let user = user.unwrap();
 
-    // let user = user.unwrap();
+    let (parsed, _) = Any::from_string(&body.signature)
+        .map_err(|_| AxumError::bad_request(eyre::eyre!("Invalid signature format")))?;
 
-    // let (public_key, _) = SignedPublicKey::from_string(&user.auth_factors.pgp.unwrap().public_key)
-    // .wrap_err("Invalid public key")?;
+    let Any::Cleartext(msg) = parsed else {
+        return Err(AxumError::bad_request(eyre::eyre!(
+            "Expected a cleartext signed message"
+        )));
+    };
 
-    // let standalone_signature = StandaloneSignature { signature: Signature:: };
+    let signed_text = msg.signed_text();
+    if signed_text.trim() != challenge_config.challenge {
+        return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
+    }
 
-    todo!()
+    let pgp_factor = user.auth_factors.pgp.clone().unwrap();
+
+    let (public_key, _) =
+        SignedPublicKey::from_string(&pgp_factor.public_key)
+            .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
+
+    msg.verify(&public_key)
+        .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
+
+    session.remove::<PgpChallengeConfig>("login::pgp_challenge").await?;
+
+    session.insert("user_id", user.id).await?;
+
+    let second_factors = get_second_factors(&user);
+
+    if second_factors.is_empty() {
+        session
+            .insert("auth_state", AuthState::Authenticated)
+            .await?;
+
+        return Ok(Json(SuccessfulLoginResponse {
+            two_factor_required: false,
+            second_factors: None,
+            recent_factor: None,
+        }));
+    }
+
+    set_recent_factor(&state.database, &user.id, FirstFactor::Pgp.into()).await?;
+
+    session
+        .insert("auth_state", AuthState::BeforeTwoFactor)
+        .await?;
+
+    Ok(Json(SuccessfulLoginResponse {
+        two_factor_required: true,
+        second_factors: Some(second_factors),
+        recent_factor: user.auth_factors.recent.second_factor,
+    }))
 }
 
 fn generate_pgp_challenge() -> String {

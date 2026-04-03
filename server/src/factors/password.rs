@@ -31,7 +31,7 @@ impl Factor for PasswordFactor {
         &self,
         args: Self::EnableRequest,
     ) -> Result<EnableResponse<Self::EnableResponse>, FactorEnableError> {
-        todo!()
+        Err(FactorEnableError::Other(FactorError::Other(color_eyre::eyre::eyre!("Not implemented"))))
     }
 
     type DisableRequest = NoData;
@@ -42,7 +42,7 @@ impl Factor for PasswordFactor {
         &self,
         args: Self::DisableRequest,
     ) -> Result<Self::DisableResponse, FactorDisableError> {
-        todo!()
+        Err(FactorDisableError::Other(FactorError::Other(color_eyre::eyre::eyre!("Not implemented"))))
     }
 
     type AuthenticateRequest = NoData;
@@ -53,6 +53,6 @@ impl Factor for PasswordFactor {
         &self,
         args: Self::AuthenticateRequest,
     ) -> Result<AuthenticateResponse<Self::AuthenticateResponse>, FactorError> {
-        todo!()
+        Err(FactorError::Other(color_eyre::eyre::eyre!("Not implemented")))
     }
 }
