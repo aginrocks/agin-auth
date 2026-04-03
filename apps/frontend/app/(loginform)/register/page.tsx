@@ -1,20 +1,17 @@
 'use client';
 
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@components/ui/form';
+import { Form } from '@components/ui/form';
 import { useForm } from 'react-hook-form';
 import { LinkComponent } from '@components/ui/link';
-import Link from 'next/link';
 import z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LoginIcon } from '@components/ui/login-icon';
-import { IconArrowRight, IconCheck, IconUserPlus } from '@tabler/icons-react';
-import { Input } from '@components/ui/input';
-import { Button } from '@components/ui/button';
 import { $api } from '@lib/providers/api';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Alert, AlertDescription, AlertTitle } from '@components/ui/alert';
 import { useRouter } from 'next/navigation';
+import { InfoStep } from './info-step';
+import { CredentialsStep } from './credentials-step';
+import { SuccessStep } from './success-step';
 
 const registerSchema = z
     .object({
@@ -67,10 +64,10 @@ export default function Page() {
         },
     });
 
-    const handleNext = async () => {
+    const handleNext = useCallback(async () => {
         const valid = await form.trigger(['first_name', 'last_name', 'display_name']);
         if (valid) setStep('credentials');
-    };
+    }, []);
 
     const handleSubmit = form.handleSubmit((data) => {
         setError(null);
@@ -96,216 +93,16 @@ export default function Page() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
                 >
-                    {step === 'info' && (
-                        <div className="flex flex-col items-center">
-                            <LoginIcon>
-                                <IconUserPlus />
-                            </LoginIcon>
-                            <div className="mt-4 flex flex-col gap-1">
-                                <h1 className="font-semibold text-xl text-center">
-                                    Create your account
-                                </h1>
-                                <p className="text-sm text-center text-muted-foreground">
-                                    Tell us a bit about yourself
-                                </p>
-                            </div>
-                            <div className="w-sm mt-6 flex flex-col gap-4">
-                                <div className="flex gap-3">
-                                    <FormField
-                                        control={form.control}
-                                        name="first_name"
-                                        render={({ field }) => (
-                                            <FormItem className="flex-1">
-                                                <FormLabel>First Name</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="John"
-                                                        autoFocus
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="last_name"
-                                        render={({ field }) => (
-                                            <FormItem className="flex-1">
-                                                <FormLabel>Last Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Doe" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <FormField
-                                    control={form.control}
-                                    name="display_name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Display Name</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="John Doe" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <Button type="button" onClick={handleNext}>
-                                    Next <IconArrowRight />
-                                </Button>
-                                <div className="text-muted-foreground text-center text-sm">
-                                    Already have an account?{' '}
-                                    <LinkComponent>
-                                        <Link href="/login">Sign In</Link>
-                                    </LinkComponent>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
+                    {step === 'info' && <InfoStep onNext={handleNext} />}
                     {step === 'credentials' && (
-                        <form
-                            className="flex flex-col items-center"
+                        <CredentialsStep
+                            onBack={() => setStep('info')}
                             onSubmit={handleSubmit}
-                        >
-                            <LoginIcon>
-                                <IconUserPlus />
-                            </LoginIcon>
-                            <div className="mt-4 flex flex-col gap-1">
-                                <h1 className="font-semibold text-xl text-center">
-                                    Set up your credentials
-                                </h1>
-                                <p className="text-sm text-center text-muted-foreground">
-                                    Choose a username and password
-                                </p>
-                            </div>
-                            <div className="w-sm mt-6 flex flex-col gap-4">
-                                {error && (
-                                    <Alert variant="destructive">
-                                        <AlertTitle>Registration Failed</AlertTitle>
-                                        <AlertDescription>{error}</AlertDescription>
-                                    </Alert>
-                                )}
-                                <FormField
-                                    control={form.control}
-                                    name="preferred_username"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Username</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="johndoe"
-                                                    autoFocus
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="email"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Email</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="john@example.com"
-                                                    type="email"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="password"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Password</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="Enter your password"
-                                                    type="password"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="confirm_password"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Confirm Password</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    placeholder="Confirm your password"
-                                                    type="password"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="flex gap-3">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="flex-1"
-                                        onClick={() => setStep('info')}
-                                    >
-                                        Back
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        className="flex-1"
-                                        disabled={register.isPending}
-                                    >
-                                        Create Account <IconArrowRight />
-                                    </Button>
-                                </div>
-                                <div className="text-muted-foreground text-center text-sm">
-                                    Already have an account?{' '}
-                                    <LinkComponent>
-                                        <Link href="/login">Sign In</Link>
-                                    </LinkComponent>
-                                </div>
-                            </div>
-                        </form>
+                            isPending={register.isPending}
+                            error={error}
+                        />
                     )}
-
-                    {step === 'success' && (
-                        <div className="flex flex-col items-center">
-                            <LoginIcon>
-                                <IconCheck />
-                            </LoginIcon>
-                            <div className="mt-4 flex flex-col gap-1">
-                                <h1 className="font-semibold text-xl text-center">
-                                    Account created
-                                </h1>
-                                <p className="text-sm text-center text-muted-foreground">
-                                    Your account has been created successfully.
-                                </p>
-                            </div>
-                            <div className="w-sm mt-6 flex flex-col gap-4">
-                                <Button onClick={() => router.push('/login')}>
-                                    Sign In <IconArrowRight />
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                    {step === 'success' && <SuccessStep onSignIn={() => router.push('/login')} />}
                 </motion.div>
             </AnimatePresence>
             <div className="text-muted-foreground text-xs absolute left-4 right-4 bottom-4 text-center">
