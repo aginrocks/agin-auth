@@ -12,5 +12,5 @@ quote = "1.0"
 proc-macro-error = "1.0.4"
 darling = "0.23.0"
 proc-macro2 = "1.0.106"
-strum = { version = "0.28.0", features = ["derive"] }
+strum.workspace = true
 Inflector = "0.11.4"
