@@ -17,13 +17,20 @@ fn email_shell(title: &str, preheader: &str, inner_html: Raw<String>) -> String 
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>(title)</title>
+                <style>"
+                    @media (prefers-color-scheme: dark) {
+                        .logo-light { display: none !important; }
+                        .logo-dark { display: block !important; }
+                    }
+                "</style>
             </head>
             <body style="margin:0;padding:40px 16px;background:#f4f4f5;font-family:system-ui,-apple-system,sans-serif;">
                 <span style="display:none;font-size:1px;color:#ffffff;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
                     (preheader)
                 </span>
                 <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:8px;border:1px solid #e4e4e7;padding:40px;">
-                    <img src="https://raw.githubusercontent.com/aginrocks/agin-auth/branding/branding/logo-text-black.png" alt="agin auth" width="148" height="33" style="display:block;margin:0 0 24px;">
+                    <img class="logo-light" src="https://raw.githubusercontent.com/aginrocks/agin-auth/branding/branding/logo-text-black.png" alt="agin auth" width="148" height="33" style="display:block;margin:0 0 24px;">
+                    <img class="logo-dark" src="https://raw.githubusercontent.com/aginrocks/agin-auth/branding/branding/logo-text-white.png" alt="agin auth" width="148" height="33" style="display:none;margin:0 0 24px;">
                     (inner_html)
                 </div>
             </body>
