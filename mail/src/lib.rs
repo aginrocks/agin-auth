@@ -33,12 +33,19 @@ pub struct MailService {
 
 impl MailService {
     pub fn new(config: MailConfig, app_name: String, public_url: String) -> Self {
-        Self { config, app_name, public_url }
+        Self {
+            config,
+            app_name,
+            public_url,
+        }
     }
 
     async fn send(&self, to: &str, subject: &str, html: String) -> Result<()> {
         let message = MessageBuilder::new()
-            .from((self.config.from_name.as_str(), self.config.from_address.as_str()))
+            .from((
+                self.config.from_name.as_str(),
+                self.config.from_address.as_str(),
+            ))
             .to(vec![to])
             .subject(subject)
             .html_body(html);
@@ -65,33 +72,56 @@ impl MailService {
     pub async fn send_email_confirmation(&self, to: &str, token: &str) -> Result<()> {
         let confirm_url = format!("{}/confirm-email?token={token}", self.public_url);
         let html = templates::email_confirmation(&confirm_url);
-        self.send(to, &format!("Confirm your {} email address", self.app_name), html)
-            .await
+        self.send(
+            to,
+            &format!("Confirm your {} email address", self.app_name),
+            html,
+        )
+        .await
     }
 
     /// Not yet implemented — will be called once login notification flow is ready (after DB migration).
     pub async fn send_login_notification(&self, to: &str, ip: &str) -> Result<()> {
         let html = templates::login_notification(ip);
-        self.send(to, &format!("New login to your {} account", self.app_name), html)
-            .await
+        self.send(
+            to,
+            &format!("New login to your {} account", self.app_name),
+            html,
+        )
+        .await
     }
 
     pub async fn send_password_changed(&self, to: &str) -> Result<()> {
         let html = templates::password_changed();
-        self.send(to, &format!("Your {} password was changed", self.app_name), html)
-            .await
+        self.send(
+            to,
+            &format!("Your {} password was changed", self.app_name),
+            html,
+        )
+        .await
     }
 
     pub async fn send_factor_added(&self, to: &str, factor_name: &str) -> Result<()> {
         let html = templates::factor_added(factor_name);
-        self.send(to, &format!("Security method added to your {} account", self.app_name), html)
-            .await
+        self.send(
+            to,
+            &format!("Security method added to your {} account", self.app_name),
+            html,
+        )
+        .await
     }
 
     pub async fn send_factor_removed(&self, to: &str, factor_name: &str) -> Result<()> {
         let html = templates::factor_removed(factor_name);
-        self.send(to, &format!("Security method removed from your {} account", self.app_name), html)
-            .await
+        self.send(
+            to,
+            &format!(
+                "Security method removed from your {} account",
+                self.app_name
+            ),
+            html,
+        )
+        .await
     }
 }
 

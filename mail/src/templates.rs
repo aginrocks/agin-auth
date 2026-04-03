@@ -1,4 +1,4 @@
-use hypertext::{prelude::*, Raw};
+use hypertext::{Raw, prelude::*};
 
 // Preheader padding: invisible Unicode characters (\u{00A0} = non-breaking space,
 // \u{200C} = zero-width non-joiner) that fill the email preheader snippet in inbox
@@ -9,7 +9,7 @@ fn preheader_padding() -> String {
 
 /// Shared email shell — renders the outer HTML structure (DOCTYPE, head, body,
 /// brand logo, container) so individual templates only provide inner content.
-fn email_shell(title: &str, preheader: &str, inner_html: &str) -> String {
+fn email_shell(title: &str, preheader: &str, inner_html: Raw<String>) -> String {
     rsx! {
         <!DOCTYPE html>
         <html lang="en">
@@ -24,7 +24,7 @@ fn email_shell(title: &str, preheader: &str, inner_html: &str) -> String {
                 </span>
                 <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:8px;border:1px solid #e4e4e7;padding:40px;">
                     <img src="https://raw.githubusercontent.com/aginrocks/agin-auth/branding/branding/logo-text-black.png" alt="agin auth" width="148" height="33" style="display:block;margin:0 0 24px;">
-                    (Raw::dangerously_create(inner_html))
+                    (inner_html)
                 </div>
             </body>
         </html>
@@ -49,15 +49,14 @@ pub fn password_reset(reset_url: &str) -> String {
             "Your password will not change."
         </p>
     }
-    .render()
-    .into_inner();
+    .memoize();
 
     let preheader = format!(
         "Someone requested a password reset for your account. Click the link to set a new password. This link expires in 1 hour.{}",
         preheader_padding()
     );
 
-    email_shell("Reset your password", &preheader, &inner)
+    email_shell("Reset your password", &preheader, inner)
 }
 
 pub fn email_confirmation(confirm_url: &str) -> String {
@@ -73,15 +72,14 @@ pub fn email_confirmation(confirm_url: &str) -> String {
             "If you didn't create an account, you can safely ignore this email."
         </p>
     }
-    .render()
-    .into_inner();
+    .memoize();
 
     let preheader = format!(
         "Thanks for signing up! Click the button to verify your email address and activate your account.{}",
         preheader_padding()
     );
 
-    email_shell("Confirm your email", &preheader, &inner)
+    email_shell("Confirm your email", &preheader, inner)
 }
 
 pub fn login_notification(ip: &str) -> String {
@@ -101,15 +99,14 @@ pub fn login_notification(ip: &str) -> String {
             "You are receiving this email because login notifications are enabled for your account."
         </p>
     }
-    .render()
-    .into_inner();
+    .memoize();
 
     let preheader = format!(
         "We detected a new login to your account. If this was you, no action is needed. If not, change your password immediately.{}",
         preheader_padding()
     );
 
-    email_shell("New login detected", &preheader, &inner)
+    email_shell("New login detected", &preheader, inner)
 }
 
 pub fn password_changed() -> String {
@@ -127,15 +124,14 @@ pub fn password_changed() -> String {
             "You are receiving this email because your account password was changed."
         </p>
     }
-    .render()
-    .into_inner();
+    .memoize();
 
     let preheader = format!(
         "Your password was successfully changed. If you didn't make this change, secure your account immediately.{}",
         preheader_padding()
     );
 
-    email_shell("Password changed", &preheader, &inner)
+    email_shell("Password changed", &preheader, inner)
 }
 
 pub fn factor_added(factor_name: &str) -> String {
@@ -155,15 +151,14 @@ pub fn factor_added(factor_name: &str) -> String {
             "You are receiving this email because a security method was added to your account."
         </p>
     }
-    .render()
-    .into_inner();
+    .memoize();
 
     let preheader = format!(
         "{factor_name} was added to your account. If you didn't make this change, secure your account immediately.{}",
         preheader_padding()
     );
 
-    email_shell("Security method added", &preheader, &inner)
+    email_shell("Security method added", &preheader, inner)
 }
 
 pub fn factor_removed(factor_name: &str) -> String {
@@ -183,13 +178,12 @@ pub fn factor_removed(factor_name: &str) -> String {
             "You are receiving this email because a security method was removed from your account."
         </p>
     }
-    .render()
-    .into_inner();
+    .memoize();
 
     let preheader = format!(
         "{factor_name} was removed from your account. If you didn't make this change, secure your account immediately.{}",
         preheader_padding()
     );
 
-    email_shell("Security method removed", &preheader, &inner)
+    email_shell("Security method removed", &preheader, inner)
 }
