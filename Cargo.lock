@@ -2805,12 +2805,12 @@ dependencies = [
 name = "mail"
 version = "0.1.0"
 dependencies = [
- "color-eyre",
  "hypertext",
  "mail-builder",
  "mail-send",
  "resend-rs",
  "serde",
+ "thiserror 2.0.17",
  "tokio",
 ]
 
