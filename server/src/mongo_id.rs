@@ -40,6 +40,7 @@ pub mod object_id_as_string {
     }
 }
 
+#[deprecated]
 pub mod object_id_as_string_required {
     use bson::oid::ObjectId;
     use mongodb::bson;
