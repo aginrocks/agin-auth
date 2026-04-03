@@ -25,6 +25,11 @@ export function Welcome() {
             if (recent_factor) return setScreen(recent_factor);
             setScreen('login-options');
         },
+        onError: (e) => {
+            form.setError('username', {
+                message: e?.error || 'Login failed.',
+            });
+        },
     });
 
     return (
