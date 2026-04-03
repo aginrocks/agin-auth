@@ -112,11 +112,13 @@ async fn respond_to_pgp_challenge(
 
     let user = get_user(&state.database, &body.username).await?;
 
-    if user.is_none() || user.clone().unwrap().auth_factors.pgp.is_none() {
-        return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
-    }
+    let user = user.ok_or_else(|| AxumError::unauthorized(eyre::eyre!("No user")))?;
 
-    let user = user.unwrap();
+    let pgp_factor = user
+        .auth_factors
+        .pgp
+        .as_ref()
+        .ok_or_else(|| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
 
     let (parsed, _) = Any::from_string(&body.signature)
         .map_err(|_| AxumError::bad_request(eyre::eyre!("Invalid signature format")))?;
@@ -131,8 +133,6 @@ async fn respond_to_pgp_challenge(
     if signed_text.trim() != challenge_config.challenge {
         return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
     }
-
-    let pgp_factor = user.auth_factors.pgp.clone().unwrap();
 
     let (public_key, _) =
         SignedPublicKey::from_string(&pgp_factor.public_key)
