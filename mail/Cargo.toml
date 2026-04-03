@@ -1,0 +1,15 @@
+[package]
+name = "mail"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+color-eyre = "0.6"
+hypertext = "0.12"
+mail-builder = "0.3"
+mail-send = "0.4"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+resend-rs = "0.7"

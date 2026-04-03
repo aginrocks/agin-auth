@@ -78,6 +78,8 @@ pub struct Settings {
     pub db: Db,
     pub redis: Redis,
     pub webauthn: WebAuthn,
+    #[serde(default)]
+    pub mail: Option<mail::MailConfig>,
 }
 
 impl Settings {
@@ -161,6 +163,7 @@ impl Settings {
                 allow_any_port: Some(false),
                 allow_subdomains: Some(false),
             },
+            mail: None,
         }
     }
 }
