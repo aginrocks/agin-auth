@@ -41,7 +41,7 @@ struct RegisterBody {
     #[validate(email, length(max = 128))]
     email: String,
 
-    #[validate(length(min = 1))]
+    #[validate(length(min = 8))]
     password: String,
 }
 
