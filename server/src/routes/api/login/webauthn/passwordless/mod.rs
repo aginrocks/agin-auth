@@ -3,16 +3,10 @@ use utoipa_axum::router::OpenApiRouter;
 use crate::state::AppState;
 
 mod finish;
-mod helpers;
-mod passwordless;
 mod start;
 
-pub fn two_factor_routes() -> OpenApiRouter<AppState> {
+pub fn routes() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .nest("/start", start::routes())
         .nest("/finish", finish::routes())
-}
-
-pub fn passwordless_routes() -> OpenApiRouter<AppState> {
-    passwordless::routes()
 }

@@ -46,18 +46,11 @@ async fn get_login_options(
 ) -> AxumResult<Json<OptionsRepsonse>> {
     let user = get_user(&state.database, &username).await?;
 
-    if user.is_none() {
-        return Ok(Json(OptionsRepsonse {
-            options: vec![
-                FirstFactor::Password,
-                FirstFactor::WebAuthnPasswordless,
-                FirstFactor::Pgp,
-            ],
-            recent_factor: None,
-        }));
-    }
-
-    let user = user.unwrap();
+    let Some(user) = user else {
+        return Err(crate::axum_error::AxumError::bad_request(
+            color_eyre::eyre::eyre!("User not found"),
+        ));
+    };
 
     let mut options: Vec<FirstFactor> = vec![];
 

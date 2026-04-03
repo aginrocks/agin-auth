@@ -4441,6 +4441,7 @@ dependencies = [
  "validator",
  "visible",
  "webauthn-rs",
+ "webauthn-rs-proto",
 ]
 
 [[package]]

@@ -369,6 +369,16 @@ pub async fn get_user_by_id(
         .await
 }
 
+pub async fn get_user_by_uuid(
+    database: &Database,
+    uuid: &uuid::Uuid,
+) -> std::result::Result<Option<User>, mongodb::error::Error> {
+    database
+        .collection::<User>("users")
+        .find_one(doc! { "uuid": bson::Binary { subtype: bson::spec::BinarySubtype::Generic, bytes: uuid.as_bytes().to_vec() } })
+        .await
+}
+
 pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     let mut second_factors = vec![];
 

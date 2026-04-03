@@ -52,13 +52,12 @@ async fn login_with_recovery_code(
     let user = get_user_by_id(&state.database, &user_id).await?;
 
     if user.is_none()
-        || !user
+        || user
             .clone()
             .unwrap()
             .auth_factors
-            .totp
-            .clone()
-            .is_some_and(|totp| totp.fully_enabled)
+            .recovery_codes
+            .is_empty()
     {
         return Err(AxumError::unauthorized(eyre::eyre!("Invalid 2FA code")));
     }
