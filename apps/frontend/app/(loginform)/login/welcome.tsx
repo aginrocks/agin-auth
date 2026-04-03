@@ -76,7 +76,7 @@ export function Welcome() {
                     <Separator className="flex-1" />
                 </div>
                 <div className="flex flex-col gap-3">
-                    <Button variant="outline" type="button">
+                    <Button variant="outline" type="button" onClick={() => setScreen('webauthnpasswordless')}>
                         <IconKey />
                         Use a security key
                     </Button>

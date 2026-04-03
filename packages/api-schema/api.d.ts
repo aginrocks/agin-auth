@@ -162,6 +162,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/login/webauthn/passwordless/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish discoverable (passwordless) WebAuthn authentication
+         * @description Completes the discoverable credential authentication flow. Requires a previous call to `/api/login/webauthn/passwordless/start`. The server identifies the user from the credential's embedded user handle (UUID).
+         */
+        post: operations["discoverable_finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/login/webauthn/passwordless/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start discoverable (passwordless) WebAuthn authentication
+         * @description Initiates a discoverable credential authentication flow. No username is required — the authenticator will present the user with a list of available passkeys.
+         */
+        post: operations["discoverable_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/login/webauthn/start": {
         parameters: {
             query?: never;
@@ -1097,6 +1137,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invalid2faCode"];
+                };
+            };
+        };
+    };
+    discoverable_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Challenge created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestChallengeResponse"];
+                };
+            };
+        };
+    };
+    discoverable_finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicKeyCredential"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessfulLoginResponse"];
+                };
+            };
+            /** @description Invalid credential or user not found */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
         };

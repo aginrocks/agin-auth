@@ -80,4 +80,6 @@ visible = "0.0.1"
 webauthn-rs = { version = "0.5.4", features = [
     "danger-allow-state-serialisation",
     "resident-key-support",
+    "conditional-ui",
 ] }
+webauthn-rs-proto = "0.5.4"

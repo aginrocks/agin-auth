@@ -4,17 +4,19 @@ mod login;
 mod register;
 mod settings;
 
+use axum::middleware;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use utoipa::{ToSchema, schema};
 use utoipa_axum::router::OpenApiRouter;
 
-use crate::state::AppState;
+use crate::{middlewares::require_auth::require_auth, state::AppState};
 
 pub fn routes() -> OpenApiRouter<AppState> {
     let auth = OpenApiRouter::new()
         .nest("/admin", admin::routes())
-        .nest("/settings", settings::routes());
+        .nest("/settings", settings::routes())
+        .layer(middleware::from_fn(require_auth));
 
     let public = OpenApiRouter::new()
         .nest("/health", health::routes())

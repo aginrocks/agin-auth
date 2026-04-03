@@ -60,7 +60,7 @@ async fn webauthn_start_setup(
         })
         .collect::<Result<Vec<HumanBinaryData>, _>>()?;
 
-    let (ccr, reg_state) = state
+    let (mut ccr, reg_state) = state
         .webauthn
         .start_passkey_registration(
             user.uuid,
@@ -69,6 +69,10 @@ async fn webauthn_start_setup(
             Some(exclude_credentials),
         )
         .wrap_err("Challenge generation failed")?;
+
+    if let Some(ref mut auth_sel) = ccr.public_key.authenticator_selection {
+        auth_sel.resident_key = Some(webauthn_rs_proto::ResidentKeyRequirement::Preferred);
+    }
 
     session.insert("reg_state", reg_state).await?;
     session
