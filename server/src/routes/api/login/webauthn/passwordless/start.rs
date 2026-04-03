@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(discoverable_start))
+    OpenApiRouter::new().routes(routes!(passwordless_start))
 }
 
 /// Start discoverable (passwordless) WebAuthn authentication
@@ -26,7 +26,7 @@ pub fn routes() -> OpenApiRouter<AppState> {
     ),
     tag = "Login"
 )]
-async fn discoverable_start(
+async fn passwordless_start(
     Extension(state): Extension<AppState>,
     session: Session,
 ) -> AxumResult<Json<RequestChallengeResponse>> {

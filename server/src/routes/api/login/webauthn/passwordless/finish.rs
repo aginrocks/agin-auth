@@ -1,20 +1,21 @@
 use axum::{Extension, Json};
-use color_eyre::eyre::{self, Context, Result};
-use mongodb::bson::doc;
+use color_eyre::{Result, eyre};
 use tower_sessions::Session;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use webauthn_rs::prelude::*;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{User, WebAuthnFactor, get_user_by_uuid},
+    database::get_user_by_uuid,
     middlewares::require_auth::UnauthorizedError,
     routes::api::{AuthState, login::SuccessfulLoginResponse},
     state::AppState,
 };
 
+use super::super::helpers::update_webauthn_credentials;
+
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(discoverable_finish))
+    OpenApiRouter::new().routes(routes!(passwordless_finish))
 }
 
 /// Finish discoverable (passwordless) WebAuthn authentication
@@ -32,7 +33,7 @@ pub fn routes() -> OpenApiRouter<AppState> {
     ),
     tag = "Login"
 )]
-async fn discoverable_finish(
+async fn passwordless_finish(
     Extension(state): Extension<AppState>,
     session: Session,
     Json(auth): Json<PublicKeyCredential>,
@@ -82,43 +83,7 @@ async fn discoverable_finish(
             AxumError::unauthorized(eyre::eyre!("Discoverable authentication failed: {}", e))
         })?;
 
-    let mut user_keys = user
-        .auth_factors
-        .webauthn
-        .iter()
-        .map(|f| -> Result<(WebAuthnFactor, Passkey)> {
-            let passkey: Passkey = serde_json::from_str(&f.serialized_key)?;
-            Ok((f.clone(), passkey))
-        })
-        .collect::<Result<Vec<(WebAuthnFactor, Passkey)>, _>>()?;
-
-    user_keys.iter_mut().for_each(|(_, sk)| {
-        sk.update_credential(&auth_result);
-    });
-
-    let serialized_keys = user_keys
-        .iter()
-        .map(|(factor, sk)| {
-            Ok(WebAuthnFactor {
-                serialized_key: serde_json::to_string(&sk)
-                    .wrap_err("Failed to serialize passkey")?,
-                ..factor.clone()
-            })
-        })
-        .collect::<Result<Vec<WebAuthnFactor>>>()?;
-
-    state
-        .database
-        .collection::<User>("users")
-        .find_one_and_update(
-            doc! { "_id": user.id },
-            doc! {
-                "$set": {
-                    "auth_factors.webauthn": serialized_keys,
-                }
-            },
-        )
-        .await?;
+    update_webauthn_credentials(&state, &user, &auth_result).await?;
 
     session.insert("user_id", user.id).await?;
     session
