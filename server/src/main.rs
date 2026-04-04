@@ -51,10 +51,19 @@ async fn main() -> Result<()> {
 
     let webauthn = init_webauthn(&settings)?;
 
+    let mail_service = settings.mail.clone().map(|cfg| {
+        Arc::new(mail::MailService::new(
+            cfg,
+            settings.general.app_name.clone(),
+            settings.general.public_url.to_string(),
+        ))
+    });
+
     let app_state = AppState {
         database,
         settings: settings.clone(),
         webauthn,
+        mail_service,
     };
 
     let session_layer = init_session_store(&settings).await?;

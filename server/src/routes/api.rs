@@ -1,6 +1,7 @@
 mod admin;
 mod health;
 mod login;
+mod password_reset;
 mod register;
 mod settings;
 
@@ -21,6 +22,7 @@ pub fn routes() -> OpenApiRouter<AppState> {
     let public = OpenApiRouter::new()
         .nest("/health", health::routes())
         .nest("/login", login::routes())
+        .nest("/password-reset", password_reset::routes())
         .nest("/register", register::routes());
 
     auth.merge(public)

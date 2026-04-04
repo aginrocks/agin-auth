@@ -222,6 +222,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request password reset */
+        post: {
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RequestResetBody"];
+                };
+            };
+            responses: {
+                200: {
+                    content: {
+                        "application/json": components["schemas"]["RequestResetResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/password-reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm password reset */
+        post: {
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmResetBody"];
+                };
+            };
+            responses: {
+                200: {
+                    content: {
+                        "application/json": components["schemas"]["ConfirmResetResponse"];
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": { error: string };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/register": {
         parameters: {
             query?: never;
@@ -398,6 +463,19 @@ export interface components {
          *     } */
         AlreadyEnabledError: {
             error: string;
+        };
+        RequestResetBody: {
+            email: string;
+        };
+        RequestResetResponse: {
+            success: boolean;
+        };
+        ConfirmResetBody: {
+            token: string;
+            new_password: string;
+        };
+        ConfirmResetResponse: {
+            success: boolean;
         };
         /**
          * @description <https://www.w3.org/TR/webauthn/#enumdef-attestationconveyancepreference>
