@@ -103,6 +103,10 @@ struct ConfirmResetResponse {
     success: bool,
 }
 
+/// Confirm password reset
+///
+/// Validates the token and sets the new password. Tokens expire after 1 hour
+/// and are deleted on use.
 #[utoipa::path(
     method(post),
     path = "/confirm",

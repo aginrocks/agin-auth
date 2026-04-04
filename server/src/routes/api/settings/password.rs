@@ -33,6 +33,9 @@ struct ChangePasswordResponse {
     success: bool,
 }
 
+/// Change password
+///
+/// Changes the current user's password. Requires the current password for verification.
 #[utoipa::path(
     method(post),
     path = "/change",
