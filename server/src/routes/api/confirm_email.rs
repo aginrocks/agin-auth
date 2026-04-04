@@ -100,6 +100,15 @@ async fn confirm_email(
     };
 
     if Utc::now() > token_doc.expires_at {
+        // Clean up other expired tokens in the background
+        let db = state.database.clone();
+        tokio::spawn(async move {
+            let now = mongodb::bson::DateTime::now();
+            let _ = db
+                .collection::<EmailConfirmationToken>("email_confirmation_tokens")
+                .delete_many(doc! { "expires_at": { "$lt": now } })
+                .await;
+        });
         return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
     }
 

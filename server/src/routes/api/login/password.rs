@@ -2,11 +2,11 @@ use argon2::{
     Argon2, PasswordHash, PasswordVerifier,
     password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
-use axum::{Extension, Json, extract::ConnectInfo};
+use axum::{Extension, Json};
+use axum_client_ip::ClientIp;
 use color_eyre::eyre;
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
 use tower_sessions::Session;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -52,7 +52,7 @@ pub struct InvalidUserOrPass {
 async fn login_with_password(
     Extension(state): Extension<AppState>,
     session: Session,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    ClientIp(client_ip): ClientIp,
     Json(body): Json<LoginBody>,
 ) -> AxumResult<Json<SuccessfulLoginResponse>> {
     let user = get_user(&state.database, &body.username).await?;
@@ -101,7 +101,7 @@ async fn login_with_password(
             .await?;
 
         if let Some(mail) = &state.mail_service {
-            let ip = addr.ip().to_string();
+            let ip = client_ip.to_string();
             let email = user.email.clone();
             let mail = mail.clone();
             tokio::spawn(async move {

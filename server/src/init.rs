@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
 use axum::{Extension, Json, Router, http::StatusCode, response::IntoResponse, routing::get};
+use axum_client_ip::ClientIpSource;
 use color_eyre::Result;
 use tokio::net::TcpListener;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
@@ -50,10 +51,17 @@ pub async fn init_axum(
         .merge(Scalar::with_url("/scalar", api.clone()))
         .route(spec_name, get(|| async move { Json(api) }));
 
+    let ip_source = if state.settings.general.trust_proxy {
+        ClientIpSource::RightmostXForwardedFor
+    } else {
+        ClientIpSource::ConnectInfo
+    };
+
     let router = router
         .nest(openapi_prefix, docs)
         .layer(Extension(state))
         .layer(session_layer)
+        .layer(ip_source.into_extension())
         .fallback(|| async { (StatusCode::NOT_FOUND, "Not found").into_response() })
         .layer(
             TraceLayer::new_for_http()

@@ -45,6 +45,9 @@ pub struct General {
     pub public_url: Uri,
 
     pub app_name: String,
+
+    #[serde(default)]
+    pub trust_proxy: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -146,6 +149,7 @@ impl Settings {
                     .parse()
                     .expect("hardcoded uri should parse"),
                 app_name: "Agin Auth".to_string(),
+                trust_proxy: false,
             },
             db: Db {
                 connection_string: "mongodb://localhost:27017".to_string(),
