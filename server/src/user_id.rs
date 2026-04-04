@@ -1,12 +1,24 @@
 use std::{fmt::Debug, hash::Hash};
 
+use serde::{Deserialize, Serialize};
+
 mod private {
     /// Used to prevent other crates from implementing [`IdLike`].
     pub trait Sealed {}
 }
 
 pub trait IdLike:
-    Clone + Copy + PartialEq + Eq + Debug + Hash + PartialOrd + Ord + private::Sealed
+    Clone
+    + Copy
+    + PartialEq
+    + Eq
+    + Debug
+    + Hash
+    + PartialOrd
+    + Ord
+    + Serialize
+    + for<'de> Deserialize<'de>
+    + private::Sealed
 {
     fn as_i32(&self) -> i32;
 }
@@ -18,8 +30,9 @@ pub trait IdLike:
 /// This ID is intended to be used in authentication flows.
 ///
 /// See [`UserId`] for the verified counterpart.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[repr(transparent)]
+#[serde(transparent)]
 pub struct ClaimedUserId(i32);
 
 impl ClaimedUserId {
@@ -37,8 +50,9 @@ impl IdLike for ClaimedUserId {
 /// Presence of this struct implies that the user is fully authenticated.
 ///
 /// See [`ClaimedUserId`] for the unverified counterpart.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[repr(transparent)]
+#[serde(transparent)]
 pub struct UserId(i32);
 
 impl UserId {
