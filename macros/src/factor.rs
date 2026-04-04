@@ -81,6 +81,7 @@ pub fn factor(
 
     // Validate the slug
     let slug_assertion = quote::quote! {
+        #[doc(hidden)]
         const _: () = assert!(
             ::auth_core::str_eq(<#self_ty as ::auth_core::Factor>::SLUG, #slug),
             "slug missmatch"
