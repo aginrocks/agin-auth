@@ -1,16 +1,9 @@
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
 use axum::{Extension, Json};
 use axum_valid::Valid;
 use chrono::{DateTime, Duration, Utc};
 use color_eyre::eyre::{self, ContextCompat};
 use mongodb::bson::{doc, oid::ObjectId};
-use rand::distr::Alphanumeric;
-use rand::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
@@ -19,6 +12,7 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     database::User,
     state::AppState,
+    utils::{generate_reset_token, hash_password, hash_token},
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
@@ -27,16 +21,12 @@ pub fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(confirm_reset))
 }
 
-// ── DB document ──────────────────────────────────────────────────────────────
-
 #[derive(Debug, Serialize, Deserialize)]
 struct PasswordResetToken {
-    token: String,
+    token_hash: String,
     user_id: ObjectId,
     expires_at: DateTime<Utc>,
 }
-
-// ── Request reset ─────────────────────────────────────────────────────────────
 
 #[derive(Deserialize, ToSchema, Validate)]
 struct RequestResetBody {
@@ -49,10 +39,6 @@ struct RequestResetResponse {
     success: bool,
 }
 
-/// Request password reset
-///
-/// Sends a password reset email if the given address is registered.
-/// Always returns success to prevent user enumeration.
 #[utoipa::path(
     method(post),
     path = "/",
@@ -79,38 +65,30 @@ async fn request_reset(
         .find_one(doc! { "email": &body.email })
         .await?;
 
-    // Always return success — don't reveal whether the email exists
     let Some(user) = user else {
         return Ok(Json(RequestResetResponse { success: true }));
     };
 
-    let token: String = rand::rng()
-        .sample_iter(&Alphanumeric)
-        .take(64)
-        .map(char::from)
-        .collect();
-    let token_hash = hex::encode(Sha256::digest(token.as_bytes()));
+    let token = generate_reset_token();
+    let token_hash = hash_token(&token);
     let expires_at = Utc::now() + Duration::hours(1);
 
     state
         .database
         .collection::<PasswordResetToken>("password_reset_tokens")
         .insert_one(PasswordResetToken {
-            token: token_hash,
+            token_hash,
             user_id: user.id,
             expires_at,
         })
         .await?;
 
-    // Best-effort — don't fail the request if mail delivery fails
     if let Err(e) = mail.send_password_reset(&user.email, &token).await {
         tracing::warn!(error = ?e, "Failed to send password reset email");
     }
 
     Ok(Json(RequestResetResponse { success: true }))
 }
-
-// ── Confirm reset ─────────────────────────────────────────────────────────────
 
 #[derive(Deserialize, ToSchema, Validate)]
 struct ConfirmResetBody {
@@ -125,10 +103,6 @@ struct ConfirmResetResponse {
     success: bool,
 }
 
-/// Confirm password reset
-///
-/// Validates the token and sets the new password. Tokens expire after 1 hour
-/// and are deleted on use.
 #[utoipa::path(
     method(post),
     path = "/confirm",
@@ -143,12 +117,12 @@ async fn confirm_reset(
     Extension(state): Extension<AppState>,
     Valid(Json(body)): Valid<Json<ConfirmResetBody>>,
 ) -> AxumResult<Json<ConfirmResetResponse>> {
-    let token_hash = hex::encode(Sha256::digest(body.token.as_bytes()));
+    let token_hash = hash_token(&body.token);
 
     let token_doc = state
         .database
         .collection::<PasswordResetToken>("password_reset_tokens")
-        .find_one(doc! { "token": &token_hash })
+        .find_one(doc! { "token_hash": &token_hash })
         .await?;
 
     let Some(token_doc) = token_doc else {
@@ -156,29 +130,22 @@ async fn confirm_reset(
     };
 
     if Utc::now() > token_doc.expires_at {
-        // Clean up expired token
         state
             .database
             .collection::<PasswordResetToken>("password_reset_tokens")
-            .delete_one(doc! { "token": &token_hash })
+            .delete_one(doc! { "token_hash": &token_hash })
             .await?;
         return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
     }
 
-    // Hash the new password
-    let salt = SaltString::generate(&mut OsRng);
-    let hash = Argon2::default()
-        .hash_password(body.new_password.as_bytes(), &salt)
-        .map_err(|_| eyre::eyre!("Failed to hash password"))?
-        .to_string();
+    let new_hash = hash_password(&body.new_password)?;
 
-    // Update user password
     state
         .database
         .collection::<User>("users")
         .update_one(
             doc! { "_id": token_doc.user_id },
-            doc! { "$set": { "auth_factors.password.password_hash": &hash } },
+            doc! { "$set": { "auth_factors.password.password_hash": &new_hash } },
         )
         .await?
         .matched_count
@@ -186,11 +153,10 @@ async fn confirm_reset(
         .then_some(())
         .wrap_err("User not found")?;
 
-    // Delete used token
     state
         .database
         .collection::<PasswordResetToken>("password_reset_tokens")
-        .delete_one(doc! { "token": &token_hash })
+        .delete_one(doc! { "token_hash": &token_hash })
         .await?;
 
     Ok(Json(ConfirmResetResponse { success: true }))

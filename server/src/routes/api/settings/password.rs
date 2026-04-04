@@ -1,7 +1,4 @@
-use argon2::{
-    Argon2, PasswordHash, PasswordVerifier,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{Extension, Json};
 use axum_valid::Valid;
 use color_eyre::eyre::{self, ContextCompat};
@@ -16,6 +13,7 @@ use crate::{
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
     state::AppState,
+    utils::hash_password,
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
@@ -35,9 +33,6 @@ struct ChangePasswordResponse {
     success: bool,
 }
 
-/// Change password
-///
-/// Changes the current user's password. Requires the current password for verification.
 #[utoipa::path(
     method(post),
     path = "/change",
@@ -72,11 +67,7 @@ async fn change_password(
         .verify_password(body.current_password.as_bytes(), &parsed_hash)
         .map_err(|_| AxumError::bad_request(eyre::eyre!("Current password is incorrect")))?;
 
-    let salt = SaltString::generate(&mut OsRng);
-    let new_hash = Argon2::default()
-        .hash_password(body.new_password.as_bytes(), &salt)
-        .map_err(|_| eyre::eyre!("Failed to hash password"))?
-        .to_string();
+    let new_hash = hash_password(&body.new_password)?;
 
     state
         .database
