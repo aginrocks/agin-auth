@@ -6,6 +6,7 @@ mod factors;
 mod init;
 mod middlewares;
 mod mongo_id;
+mod oidc;
 mod routes;
 mod settings;
 mod state;
@@ -23,6 +24,7 @@ use utoipa::OpenApi;
 use crate::{
     database::{init_database, init_session_store},
     init::{init_axum, init_listener, init_tracing},
+    oidc::init_oidc_keys,
     settings::Settings,
     state::AppState,
     webauthn::init_webauthn,
@@ -59,11 +61,14 @@ async fn main() -> Result<()> {
         ))
     });
 
+    let oidc_keys = init_oidc_keys()?;
+
     let app_state = AppState {
         database,
         settings: settings.clone(),
         webauthn,
         mail_service,
+        oidc_keys,
     };
 
     let session_layer = init_session_store(&settings).await?;

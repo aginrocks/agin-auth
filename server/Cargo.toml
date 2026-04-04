@@ -21,6 +21,7 @@ futures = "0.3.32"
 hex = "0.4.3"
 http = "1.4.0"
 http-serde-ext = "1.0.2"
+jsonwebtoken = "9"
 macros = { version = "0.1.0", path = "../macros" }
 mongodb = "3.5.2"
 openidconnect = { version = "4.0.1", default-features = false, features = [
@@ -32,6 +33,7 @@ partial_struct = "0.4.5"
 paste = "1.0.15"
 pgp = "0.19.0"
 rand = { version = "0.10.0", features = ["thread_rng"] }
+rsa = { version = "0.9", features = ["pem"] }
 sha2 = "0.10"
 rand_core = { version = "0.10.0" }
 regex = "1.12.3"
@@ -56,6 +58,7 @@ tokio = { version = "1.50.0", features = ["full"] }
 toml = "1.1.2"
 totp-rs = { version = "5.7.1", features = ["gen_secret", "otpauth"] }
 tower = { version = "0.5.3", features = ["full", "tokio", "log"] }
+tower_governor = "0.8.0"
 tower-http = { version = "0.6.8", features = ["trace"] }
 tower-sessions = "0.14.0"
 tower-sessions-redis-store = "0.16.0"
@@ -71,6 +74,7 @@ tracing-subscriber = { version = "0.3.23", features = [
     "time",
 ] }
 url = "2.5.8"
+urlencoding = "2"
 utoipa = { version = "5.4.0", features = ["axum_extras", "url", "uuid"] }
 utoipa-axum = "0.2.0"
 utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }

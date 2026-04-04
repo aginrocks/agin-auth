@@ -28,6 +28,17 @@ export function ErrorMsg({ msg }: { msg: string }) {
 }
 
 export function ExpandForm({ open, children }: { open: boolean; children: React.ReactNode }) {
+    const [overflow, setOverflow] = useState<'hidden' | 'visible'>('hidden');
+
+    useEffect(() => {
+        if (open) {
+            const t = setTimeout(() => setOverflow('visible'), 400);
+            return () => clearTimeout(t);
+        } else {
+            setOverflow('hidden');
+        }
+    }, [open]);
+
     return (
         <AnimatePresence initial={false}>
             {open && (
@@ -36,7 +47,7 @@ export function ExpandForm({ open, children }: { open: boolean; children: React.
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.8 }}
-                    className="overflow-hidden"
+                    style={{ overflow }}
                 >
                     <div className="pt-3 pb-1">{children}</div>
                 </motion.div>
@@ -57,7 +68,7 @@ export function SmoothResize({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <motion.div animate={{ height }} transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.8 }} className="overflow-hidden">
+        <motion.div animate={{ height }} transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.8 }} style={{ overflow: 'clip' }}>
             <div ref={ref}>{children}</div>
         </motion.div>
     );

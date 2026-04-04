@@ -41,7 +41,7 @@ export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: (
     };
 
     return (
-        <FactorRow icon={<IconLock />} name="Password" description="Authenticate using a knowledge-based password." tag={{ label: isSet ? 'Enabled' : 'Disabled', enabled: isSet }} onToggle={() => setOpen(v => !v)} open={open}>
+        <FactorRow icon={<IconLock />} name="Password" description="Authenticate using a password." tag={{ label: isSet ? 'Enabled' : 'Disabled', enabled: isSet }} onToggle={() => setOpen(v => !v)} open={open}>
             <ExpandForm open={open}>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 max-w-sm ml-9 px-5 pb-4">

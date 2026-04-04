@@ -23,7 +23,7 @@ export function FactorRow({
     return (
         <div className={`${!last ? 'border-b border-border/60' : ''}`}>
             <button type="button" onClick={onToggle}
-                className="w-full px-5 py-4 flex items-center gap-4 text-left hover:bg-muted/50 transition-colors">
+                className="w-full px-5 py-4 flex items-center gap-4 text-left hover:bg-muted/50 transition-colors cursor-pointer rounded-[inherit]">
                 <span className="text-muted-foreground shrink-0 [&_svg]:size-5">{icon}</span>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">

@@ -1,78 +1,145 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import z from 'zod';
 import { $api } from '@lib/providers/api';
 import { Button } from '@components/ui/button';
-import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
-import { IconKey } from '@tabler/icons-react';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
+import { Input } from '@components/ui/input';
+import { IconKey, IconTrash } from '@tabler/icons-react';
 import { FactorRow } from './factor-row';
 import { ErrorMsg, ExpandForm } from './helpers';
 
+const pgpSchema = z.object({
+    display_name: z.string().min(1, 'Required').max(32),
+    public_key: z.string().min(1, 'Required'),
+});
+type PgpForm = z.infer<typeof pgpSchema>;
+
 export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display_name: string }[]; onRefetch: () => void }) {
     const [open, setOpen] = useState(false);
-    const [displayName, setDisplayName] = useState('');
-    const [publicKey, setPublicKey] = useState('');
-    const [error, setError] = useState('');
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
 
     const enable = $api.useMutation('post', '/api/settings/factors/pgp/enable');
     const disable = $api.useMutation('delete', '/api/settings/factors/pgp/disable');
 
     const isEnabled = pgp.length > 0;
 
-    const handleEnable = async (e: React.FormEvent) => {
-        e.preventDefault(); setError('');
-        try { await enable.mutateAsync({ body: { display_name: displayName, public_key: publicKey } }); setOpen(false); setDisplayName(''); setPublicKey(''); onRefetch(); }
-        catch { setError('Invalid key or failed to add.'); }
+    const form = useForm<PgpForm>({
+        resolver: zodResolver(pgpSchema),
+        defaultValues: { display_name: '', public_key: '' },
+    });
+
+    const onSubmit = async (data: PgpForm) => {
+        try {
+            await enable.mutateAsync({ body: { display_name: data.display_name, public_key: data.public_key } });
+            form.reset();
+            setOpen(false);
+            onRefetch();
+        } catch {
+            form.setError('public_key', { message: 'Invalid key or failed to add.' });
+        }
     };
 
     const handleDisable = async () => {
-        setError('');
-        try { await disable.mutateAsync({}); onRefetch(); }
-        catch { setError('Failed to remove.'); }
+        setDeleteError('');
+        try {
+            await disable.mutateAsync({});
+            setConfirmDelete(false);
+            setOpen(false);
+            onRefetch();
+        } catch {
+            setDeleteError('Failed to remove.');
+        }
+    };
+
+    const handleToggle = () => {
+        if (isEnabled) {
+            setOpen(v => !v);
+            setConfirmDelete(false);
+            setDeleteError('');
+        } else {
+            setOpen(v => !v);
+        }
     };
 
     return (
-        <FactorRow icon={<IconKey />} name="PGP Key" description="Authenticate by signing a server challenge with your PGP private key." tag={{ label: isEnabled ? pgp[0]?.display_name ?? 'Enabled' : 'Disabled', enabled: isEnabled }} onToggle={() => { if (!isEnabled) setOpen(v => !v); }} open={open}>
-            <div className="ml-9 px-5">
-                {isEnabled ? (
-                    <div className="space-y-2 mt-2 pb-3">
-                        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 max-w-sm">
-                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">Fingerprint</p>
-                            <code className="font-mono text-[11px] text-foreground break-all">{pgp[0]?.fingerprint}</code>
+        <FactorRow
+            icon={<IconKey />}
+            name="PGP Key"
+            description="Authenticate by signing a server challenge with your PGP private key."
+            tag={{ label: isEnabled ? pgp[0]?.display_name ?? 'Enabled' : 'Disabled', enabled: isEnabled }}
+            onToggle={handleToggle}
+            open={open}
+        >
+            {isEnabled ? (
+                <ExpandForm open={open}>
+                    <div className="ml-9 px-5 pb-4 space-y-2">
+                        <div className="flex items-center gap-3 w-fit">
+                            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">Fingerprint</p>
+                                <code className="font-mono text-[11px] text-foreground break-all">{pgp[0]?.fingerprint}</code>
+                            </div>
+                            {confirmDelete ? (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <button onClick={handleDisable} disabled={disable.isPending}
+                                        className="text-xs text-destructive hover:text-destructive/80 font-medium transition-colors disabled:opacity-30">
+                                        {disable.isPending ? 'Removing…' : 'Confirm'}
+                                    </button>
+                                    <button onClick={() => { setConfirmDelete(false); setDeleteError(''); }}
+                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button onClick={() => setConfirmDelete(true)}
+                                    aria-label="Remove PGP key"
+                                    className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
+                                    <IconTrash size={13} />
+                                </button>
+                            )}
                         </div>
-                        <ErrorMsg msg={error} />
-                        <button onClick={handleDisable} disabled={disable.isPending}
-                            className="flex items-center gap-1 text-xs text-destructive/60 hover:text-destructive transition-colors disabled:opacity-50">
-                            {disable.isPending ? 'Removing…' : 'Remove key'}
-                        </button>
+                        <ErrorMsg msg={deleteError} />
                     </div>
-                ) : (
-                    <ExpandForm open={open}>
-                        <form onSubmit={handleEnable} className="space-y-3 max-w-sm pb-4">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="pgp-name" className="text-xs">Name</Label>
-                                <Input id="pgp-name" value={displayName} onChange={e => setDisplayName(e.target.value)}
-                                    placeholder="Work key" className="h-9 text-sm" required maxLength={32} />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs">Public key (ASCII-armored)</Label>
-                                <textarea value={publicKey} onChange={e => setPublicKey(e.target.value)}
-                                    placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-[11px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 min-h-[80px] resize-none"
-                                    required />
-                            </div>
-                            <ErrorMsg msg={error} />
+                </ExpandForm>
+            ) : (
+                <ExpandForm open={open}>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="ml-9 px-5 pb-4 space-y-3 max-w-sm">
+                            <FormField control={form.control} name="display_name" render={({ field }) => (
+                                <FormItem className="space-y-1.5">
+                                    <Label className="text-xs">Name</Label>
+                                    <FormControl>
+                                        <Input {...field} placeholder="Work key" className="h-9 text-sm" maxLength={32} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="public_key" render={({ field }) => (
+                                <FormItem className="space-y-1.5">
+                                    <Label className="text-xs">Public key (ASCII-armored)</Label>
+                                    <FormControl>
+                                        <textarea {...field}
+                                            placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"
+                                            className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-[11px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 min-h-[80px] resize-none" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                             <div className="flex gap-2">
                                 <Button size="sm" type="submit" disabled={enable.isPending}>
                                     {enable.isPending ? 'Adding…' : 'Add key'}
                                 </Button>
-                                <Button size="sm" variant="ghost" type="button" onClick={() => { setOpen(false); setError(''); }}>Cancel</Button>
+                                <Button size="sm" variant="ghost" type="button" onClick={() => { setOpen(false); form.reset(); }}>Cancel</Button>
                             </div>
                         </form>
-                    </ExpandForm>
-                )}
-            </div>
+                    </Form>
+                </ExpandForm>
+            )}
         </FactorRow>
     );
 }

@@ -1,4 +1,4 @@
-use axum::{Extension, Json};
+use axum::{Extension, Json, response::{Html, IntoResponse}};
 use axum_valid::Valid;
 use chrono::{DateTime, Duration, Utc};
 use color_eyre::eyre;
@@ -16,7 +16,9 @@ use crate::{
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(confirm_email))
+    OpenApiRouter::new()
+        .routes(routes!(confirm_email))
+        .routes(routes!(confirm_email_get))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -104,10 +106,13 @@ async fn confirm_email(
         let db = state.database.clone();
         tokio::spawn(async move {
             let now = mongodb::bson::DateTime::now();
-            let _ = db
+            if let Err(e) = db
                 .collection::<EmailConfirmationToken>("email_confirmation_tokens")
                 .delete_many(doc! { "expires_at": { "$lt": now } })
-                .await;
+                .await
+            {
+                tracing::warn!(error = ?e, "Failed to clean up expired email confirmation tokens");
+            }
         });
         return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
     }
@@ -126,4 +131,57 @@ async fn confirm_email(
     }
 
     Ok(Json(ConfirmEmailResponse { success: true }))
+}
+
+#[derive(Deserialize)]
+struct ConfirmEmailQuery {
+    token: String,
+}
+
+/// Confirm email address (GET — link from email)
+#[utoipa::path(
+    method(get),
+    path = "/",
+    params(("token" = String, Query, description = "Confirmation token")),
+    responses(
+        (status = OK, description = "Email confirmed"),
+        (status = BAD_REQUEST, description = "Invalid or expired token"),
+    ),
+    tag = "Email Confirmation"
+)]
+async fn confirm_email_get(
+    Extension(state): Extension<AppState>,
+    axum::extract::Query(query): axum::extract::Query<ConfirmEmailQuery>,
+) -> impl IntoResponse {
+    let token_hash = hash_token(&query.token);
+
+    let token_doc = state
+        .database
+        .collection::<EmailConfirmationToken>("email_confirmation_tokens")
+        .find_one_and_delete(doc! { "token_hash": &token_hash })
+        .await;
+
+    let Ok(Some(token_doc)) = token_doc else {
+        return Html("<h2>Invalid or expired confirmation link.</h2>").into_response();
+    };
+
+    if Utc::now() > token_doc.expires_at {
+        return Html("<h2>This confirmation link has expired.</h2>").into_response();
+    }
+
+    let result = state
+        .database
+        .collection::<User>("users")
+        .update_one(
+            doc! { "_id": token_doc.user_id },
+            doc! { "$set": { "email_confirmed": true } },
+        )
+        .await;
+
+    match result {
+        Ok(r) if r.matched_count > 0 => {
+            Html("<h2>Email confirmed! You can close this tab.</h2>").into_response()
+        }
+        _ => Html("<h2>User not found.</h2>").into_response(),
+    }
 }
