@@ -7,10 +7,12 @@ use axum_valid::Valid;
 use chrono::{DateTime, Duration, Utc};
 use color_eyre::eyre::{self, ContextCompat};
 use mongodb::bson::{doc, oid::ObjectId};
+use rand::distr::Alphanumeric;
+use rand::{Rng, RngExt};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
-use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
@@ -82,14 +84,19 @@ async fn request_reset(
         return Ok(Json(RequestResetResponse { success: true }));
     };
 
-    let token = Uuid::new_v4().to_string();
+    let token: String = rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(64)
+        .map(char::from)
+        .collect();
+    let token_hash = hex::encode(Sha256::digest(token.as_bytes()));
     let expires_at = Utc::now() + Duration::hours(1);
 
     state
         .database
         .collection::<PasswordResetToken>("password_reset_tokens")
         .insert_one(PasswordResetToken {
-            token: token.clone(),
+            token: token_hash,
             user_id: user.id,
             expires_at,
         })
@@ -136,10 +143,12 @@ async fn confirm_reset(
     Extension(state): Extension<AppState>,
     Valid(Json(body)): Valid<Json<ConfirmResetBody>>,
 ) -> AxumResult<Json<ConfirmResetResponse>> {
+    let token_hash = hex::encode(Sha256::digest(body.token.as_bytes()));
+
     let token_doc = state
         .database
         .collection::<PasswordResetToken>("password_reset_tokens")
-        .find_one(doc! { "token": &body.token })
+        .find_one(doc! { "token": &token_hash })
         .await?;
 
     let Some(token_doc) = token_doc else {
@@ -151,7 +160,7 @@ async fn confirm_reset(
         state
             .database
             .collection::<PasswordResetToken>("password_reset_tokens")
-            .delete_one(doc! { "token": &body.token })
+            .delete_one(doc! { "token": &token_hash })
             .await?;
         return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
     }
@@ -181,7 +190,7 @@ async fn confirm_reset(
     state
         .database
         .collection::<PasswordResetToken>("password_reset_tokens")
-        .delete_one(doc! { "token": &body.token })
+        .delete_one(doc! { "token": &token_hash })
         .await?;
 
     Ok(Json(ConfirmResetResponse { success: true }))
