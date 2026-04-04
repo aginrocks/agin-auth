@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 
+use crate::FlowClaims;
+
 // TODO: Fix error types
 
 #[derive(Debug, Error, ToSchema)]
@@ -125,9 +127,12 @@ pub struct AuthenticateResponse<T> {
     /// Indicates whether additional factors are required to complete authentication.
     pub fully_authenticated: bool,
 
-    // TODO: Add a stricter type
-    /// A list of factors to choose from for the next authentication step.
-    pub next: Vec<String>,
+    /// Claims made about user identity.
+    ///
+    /// This field is *NOT* sent to the clients, instead it is intended to be used by a flow controller.
+    #[schema(value_type = ())]
+    #[serde(skip)]
+    pub claims: FlowClaims,
 
     #[serde(flatten)]
     pub data: T,

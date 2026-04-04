@@ -3,6 +3,7 @@ mod database;
 mod entity;
 mod extractors;
 mod factors;
+mod flow;
 mod init;
 mod middlewares;
 mod mongo_id;
