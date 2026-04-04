@@ -13,42 +13,38 @@ use crate::{
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(disable_totp))
+    OpenApiRouter::new().routes(routes!(disable_pgp))
 }
 
 #[derive(Serialize, ToSchema)]
 #[schema(example = json!({ "success": true }))]
-struct DisableTotpResponse {
+struct DisablePgpResponse {
     success: bool,
 }
 
-/// Disable TOTP
+/// Disable PGP
 ///
-/// Removes the TOTP authentication factor from the user's account.
+/// Removes the PGP authentication factor from the user's account.
 #[utoipa::path(
     method(delete),
     path = "/",
     responses(
-        (status = OK, description = "Success", body = DisableTotpResponse, content_type = "application/json"),
+        (status = OK, description = "Success", body = DisablePgpResponse, content_type = "application/json"),
         (status = UNAUTHORIZED, description = "Unauthorized", body = UnauthorizedError, content_type = "application/json"),
-        (status = BAD_REQUEST, description = "TOTP not enabled", body = String, content_type = "application/json"),
+        (status = BAD_REQUEST, description = "PGP not enabled", body = String, content_type = "application/json"),
     ),
     tag = "Settings"
 )]
-async fn disable_totp(
+async fn disable_pgp(
     Extension(state): Extension<AppState>,
     Extension(user_id): Extension<UserId>,
-) -> AxumResult<Json<DisableTotpResponse>> {
+) -> AxumResult<Json<DisablePgpResponse>> {
     let user = get_user_by_id(&state.database, &user_id)
         .await?
         .wrap_err("User not found")?;
 
-    if !user
-        .auth_factors
-        .totp
-        .is_some_and(|totp| totp.fully_enabled)
-    {
-        return Err(AxumError::bad_request(eyre::eyre!("TOTP is not enabled")));
+    if user.auth_factors.pgp.is_none() {
+        return Err(AxumError::bad_request(eyre::eyre!("PGP is not enabled")));
     }
 
     state
@@ -56,7 +52,7 @@ async fn disable_totp(
         .collection::<User>("users")
         .update_one(
             doc! { "_id": *user_id },
-            doc! { "$unset": { "auth_factors.totp": "" } },
+            doc! { "$unset": { "auth_factors.pgp": "" } },
         )
         .await?;
 
@@ -64,11 +60,11 @@ async fn disable_totp(
         let email = user.email.clone();
         let mail = mail.clone();
         tokio::spawn(async move {
-            if let Err(e) = mail.send_factor_removed(&email, "TOTP authenticator").await {
+            if let Err(e) = mail.send_factor_removed(&email, "PGP key").await {
                 tracing::warn!(error = ?e, "Failed to send factor removed notification");
             }
         });
     }
 
-    Ok(Json(DisableTotpResponse { success: true }))
+    Ok(Json(DisablePgpResponse { success: true }))
 }

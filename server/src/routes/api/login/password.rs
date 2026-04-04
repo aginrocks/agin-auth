@@ -2,10 +2,11 @@ use argon2::{
     Argon2, PasswordHash, PasswordVerifier,
     password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
-use axum::{Extension, Json};
+use axum::{Extension, Json, extract::ConnectInfo};
 use color_eyre::eyre;
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use tower_sessions::Session;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -36,19 +37,6 @@ pub struct InvalidUserOrPass {
     error: String,
 }
 
-trait A {
-    type T;
-}
-
-#[derive(ToSchema)]
-struct B {}
-
-impl A for B {
-    type T = InvalidUserOrPass;
-}
-
-type C = <B as A>::T;
-
 /// Log in with password
 ///
 /// If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.
@@ -64,6 +52,7 @@ type C = <B as A>::T;
 async fn login_with_password(
     Extension(state): Extension<AppState>,
     session: Session,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(body): Json<LoginBody>,
 ) -> AxumResult<Json<SuccessfulLoginResponse>> {
     let user = get_user(&state.database, &body.username).await?;
@@ -110,6 +99,17 @@ async fn login_with_password(
         session
             .insert("auth_state", AuthState::Authenticated)
             .await?;
+
+        if let Some(mail) = &state.mail_service {
+            let ip = addr.ip().to_string();
+            let email = user.email.clone();
+            let mail = mail.clone();
+            tokio::spawn(async move {
+                if let Err(e) = mail.send_login_notification(&email, &ip).await {
+                    tracing::warn!(error = ?e, "Failed to send login notification");
+                }
+            });
+        }
 
         return Ok(Json(SuccessfulLoginResponse {
             two_factor_required: false,

@@ -1,4 +1,5 @@
 mod admin;
+mod confirm_email;
 mod health;
 mod login;
 mod password_reset;
@@ -20,6 +21,7 @@ pub fn routes() -> OpenApiRouter<AppState> {
         .layer(middleware::from_fn(require_auth));
 
     let public = OpenApiRouter::new()
+        .nest("/confirm-email", confirm_email::routes())
         .nest("/health", health::routes())
         .nest("/login", login::routes())
         .nest("/password-reset", password_reset::routes())

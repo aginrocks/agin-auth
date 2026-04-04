@@ -1,4 +1,5 @@
 mod enable;
+mod reset;
 
 use argon2::{
     Argon2, PasswordHash, PasswordVerifier,
@@ -15,7 +16,9 @@ use crate::{
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().nest("/enable", enable::routes())
+    OpenApiRouter::new()
+        .nest("/enable", enable::routes())
+        .nest("/reset", reset::routes())
 }
 
 pub fn generate_recovery_code(len: usize) -> String {

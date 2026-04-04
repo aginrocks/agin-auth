@@ -1,7 +1,3 @@
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
 use axum::{Extension, Json};
 use axum_valid::Valid;
 use color_eyre::eyre::{self, ContextCompat};
@@ -15,8 +11,9 @@ use validator::Validate;
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{AuthFactors, PartialUser, PasswordFactor, User},
-    routes::api::CreateSuccess,
+    routes::api::{CreateSuccess, confirm_email::send_confirmation_email},
     state::AppState,
+    utils::hash_password,
     validators::username_validator,
 };
 
@@ -88,13 +85,7 @@ async fn register(
         )));
     }
 
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    let hashed_password = argon2
-        .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|_| eyre::eyre!("Failed to compute hash"))?;
-
+    let hashed_password = hash_password(&body.password)?;
     let uuid = Uuid::new_v4();
 
     let user = PartialUser {
@@ -103,10 +94,11 @@ async fn register(
         last_name: body.last_name,
         display_name: body.display_name,
         preferred_username: body.preferred_username,
-        email: body.email,
+        email: body.email.clone(),
+        email_confirmed: false,
         auth_factors: AuthFactors {
             password: PasswordFactor {
-                password_hash: Some(hashed_password.to_string()),
+                password_hash: Some(hashed_password),
             },
             ..Default::default()
         },
@@ -122,8 +114,12 @@ async fn register(
     let id = inserted
         .inserted_id
         .as_object_id()
-        .wrap_err("Failed to fetch project ID")?
-        .to_string();
+        .wrap_err("Failed to fetch project ID")?;
 
-    Ok(Json(CreateSuccess { success: true, id }))
+    send_confirmation_email(&state, id, &body.email).await?;
+
+    Ok(Json(CreateSuccess {
+        success: true,
+        id: id.to_string(),
+    }))
 }

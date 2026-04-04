@@ -259,6 +259,8 @@ database_object!(User {
     display_name: String,
     preferred_username: String,
     email: String,
+    #[serde(default)]
+    email_confirmed: bool,
     auth_factors: AuthFactors,
 
     #[serde(with = "vec_oid_to_vec_string")]

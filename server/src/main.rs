@@ -78,9 +78,12 @@ async fn main() -> Result<()> {
         settings.general.public_url
     );
 
-    axum::serve(listener, app.into_make_service())
-        .await
-        .wrap_err("failed to run server")?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .wrap_err("failed to run server")?;
 
     Ok(())
 }

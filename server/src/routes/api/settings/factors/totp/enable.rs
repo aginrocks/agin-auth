@@ -20,7 +20,9 @@ use crate::{
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(enable_totp))
+    OpenApiRouter::new()
+        .routes(routes!(enable_totp))
+        .nest("/confirm", confirm::routes())
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
