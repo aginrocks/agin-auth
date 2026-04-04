@@ -1,4 +1,4 @@
-use axum::{Extension, Json, response::{Html, IntoResponse}};
+use axum::{Extension, Json, extract::Query, response::{Html, IntoResponse}};
 use axum_valid::Valid;
 use chrono::{DateTime, Duration, Utc};
 use color_eyre::eyre;
@@ -151,7 +151,7 @@ struct ConfirmEmailQuery {
 )]
 async fn confirm_email_get(
     Extension(state): Extension<AppState>,
-    axum::extract::Query(query): axum::extract::Query<ConfirmEmailQuery>,
+    Query(query): Query<ConfirmEmailQuery>,
 ) -> impl IntoResponse {
     let token_hash = hash_token(&query.token);
 

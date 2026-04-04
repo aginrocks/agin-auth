@@ -1,9 +1,11 @@
 use axum::{Extension, Json};
+use axum_valid::Valid;
 use color_eyre::eyre::OptionExt;
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
+use validator::Validate;
 
 use crate::{
     axum_error::AxumResult,
@@ -60,10 +62,13 @@ async fn get_profile(
     }))
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, Validate)]
 struct UpdateProfileBody {
+    #[validate(length(min = 1, max = 64))]
     display_name: Option<String>,
+    #[validate(length(max = 64))]
     first_name: Option<String>,
+    #[validate(length(max = 64))]
     last_name: Option<String>,
 }
 
@@ -88,27 +93,21 @@ struct UpdateProfileResponse {
 async fn update_profile(
     Extension(state): Extension<AppState>,
     Extension(user_id): Extension<UserId>,
-    Json(body): Json<UpdateProfileBody>,
+    Valid(Json(body)): Valid<Json<UpdateProfileBody>>,
 ) -> AxumResult<Json<UpdateProfileResponse>> {
     let mut update = doc! {};
 
     if let Some(display_name) = &body.display_name {
         let trimmed = display_name.trim();
-        if !trimmed.is_empty() && trimmed.len() <= 64 {
+        if !trimmed.is_empty() {
             update.insert("display_name", trimmed);
         }
     }
     if let Some(first_name) = &body.first_name {
-        let trimmed = first_name.trim();
-        if trimmed.len() <= 64 {
-            update.insert("first_name", trimmed);
-        }
+        update.insert("first_name", first_name.trim());
     }
     if let Some(last_name) = &body.last_name {
-        let trimmed = last_name.trim();
-        if trimmed.len() <= 64 {
-            update.insert("last_name", trimmed);
-        }
+        update.insert("last_name", last_name.trim());
     }
 
     if update.is_empty() {

@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@components
 import { Input } from '@components/ui/input';
 import { IconKey, IconTrash } from '@tabler/icons-react';
 import { FactorRow } from './factor-row';
-import { ErrorMsg, ExpandForm } from './helpers';
+import { ExpandForm } from './helpers';
 
 const pgpSchema = z.object({
     display_name: z.string().min(1, 'Required').max(32),
@@ -22,49 +22,36 @@ type PgpForm = z.infer<typeof pgpSchema>;
 export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display_name: string }[]; onRefetch: () => void }) {
     const [open, setOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const [deleteError, setDeleteError] = useState('');
-
-    const enable = $api.useMutation('post', '/api/settings/factors/pgp/enable');
-    const disable = $api.useMutation('delete', '/api/settings/factors/pgp/disable');
-
-    const isEnabled = pgp.length > 0;
 
     const form = useForm<PgpForm>({
         resolver: zodResolver(pgpSchema),
         defaultValues: { display_name: '', public_key: '' },
     });
 
-    const onSubmit = async (data: PgpForm) => {
-        try {
-            await enable.mutateAsync({ body: { display_name: data.display_name, public_key: data.public_key } });
+    const enable = $api.useMutation('post', '/api/settings/factors/pgp/enable', {
+        onSuccess: () => {
             form.reset();
             setOpen(false);
             onRefetch();
-        } catch {
+        },
+        onError: () => {
             form.setError('public_key', { message: 'Invalid key or failed to add.' });
-        }
-    };
+        },
+    });
 
-    const handleDisable = async () => {
-        setDeleteError('');
-        try {
-            await disable.mutateAsync({});
+    const disable = $api.useMutation('delete', '/api/settings/factors/pgp/disable', {
+        onSuccess: () => {
             setConfirmDelete(false);
             setOpen(false);
             onRefetch();
-        } catch {
-            setDeleteError('Failed to remove.');
-        }
-    };
+        },
+    });
+
+    const isEnabled = pgp.length > 0;
 
     const handleToggle = () => {
-        if (isEnabled) {
-            setOpen(v => !v);
-            setConfirmDelete(false);
-            setDeleteError('');
-        } else {
-            setOpen(v => !v);
-        }
+        setOpen(v => !v);
+        setConfirmDelete(false);
     };
 
     return (
@@ -86,11 +73,11 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
                             </div>
                             {confirmDelete ? (
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                    <button onClick={handleDisable} disabled={disable.isPending}
+                                    <button onClick={() => disable.mutate({})} disabled={disable.isPending}
                                         className="text-xs text-destructive hover:text-destructive/80 font-medium transition-colors disabled:opacity-30">
                                         {disable.isPending ? 'Removing…' : 'Confirm'}
                                     </button>
-                                    <button onClick={() => { setConfirmDelete(false); setDeleteError(''); }}
+                                    <button onClick={() => setConfirmDelete(false)}
                                         className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                                         Cancel
                                     </button>
@@ -103,13 +90,15 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
                                 </button>
                             )}
                         </div>
-                        <ErrorMsg msg={deleteError} />
+                        {disable.isError && (
+                            <p className="text-xs text-destructive">Failed to remove.</p>
+                        )}
                     </div>
                 </ExpandForm>
             ) : (
                 <ExpandForm open={open}>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="ml-9 px-5 pb-4 space-y-3 max-w-sm">
+                        <form onSubmit={form.handleSubmit(data => enable.mutate({ body: data }))} className="ml-9 px-5 pb-4 space-y-3 max-w-sm">
                             <FormField control={form.control} name="display_name" render={({ field }) => (
                                 <FormItem className="space-y-1.5">
                                     <Label className="text-xs">Name</Label>

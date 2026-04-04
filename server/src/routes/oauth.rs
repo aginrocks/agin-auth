@@ -7,6 +7,12 @@ use axum::{
 use chrono::Utc;
 use color_eyre::eyre::{self, Context as _};
 use mongodb::bson::doc;
+use openidconnect::{
+    AccessToken, Audience, EmptyAdditionalClaims, EndUserEmail, EndUserFamilyName,
+    EndUserGivenName, EndUserName, EndUserUsername, IssuerUrl, LocalizedClaim, Nonce,
+    SubjectIdentifier,
+    core::{CoreIdToken, CoreIdTokenClaims, CoreJwsSigningAlgorithm},
+};
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;
@@ -15,9 +21,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use crate::{
     axum_error::{AxumError, AxumResult},
     database::{Application, User, get_user_by_uuid},
-    oidc::{
-        AccessTokenClaims, AuthorizationCode, IdTokenClaims, RefreshToken, build_discovery,
-    },
+    oidc::{AccessTokenClaims, AuthorizationCode, RefreshToken},
     state::AppState,
     utils::{generate_reset_token, hash_token},
 };
@@ -32,20 +36,6 @@ pub fn routes() -> OpenApiRouter<AppState> {
 
 // ── Discovery ────────────────────────────────────────────────────
 
-/// OpenID Connect Discovery
-#[utoipa::path(
-    method(get),
-    path = "/.well-known/openid-configuration",
-    responses(
-        (status = OK, description = "OIDC Discovery Document"),
-    ),
-    tag = "OAuth"
-)]
-async fn discovery(Extension(state): Extension<AppState>) -> impl IntoResponse {
-    let issuer = state.settings.general.public_url.to_string().trim_end_matches('/').to_string();
-    Json(build_discovery(&issuer))
-}
-
 // ── JWKS ─────────────────────────────────────────────────────────
 
 /// JSON Web Key Set
@@ -58,7 +48,7 @@ async fn discovery(Extension(state): Extension<AppState>) -> impl IntoResponse {
     tag = "OAuth"
 )]
 async fn jwks(Extension(state): Extension<AppState>) -> impl IntoResponse {
-    Json(state.oidc_keys.jwks_json.clone())
+    Json(serde_json::to_value(&state.oidc_keys.jwks).unwrap_or_default())
 }
 
 // ── Authorize (GET) ──────────────────────────────────────────────
@@ -591,39 +581,63 @@ async fn handle_authorization_code_grant(
 
     // Build ID token if openid scope requested
     let id_token = if scopes.contains(&"openid") {
-        let mut claims = IdTokenClaims {
-            iss: issuer.clone(),
-            sub: user.uuid.to_string(),
-            aud: client_id.clone(),
-            exp: now + 3600,
-            iat: now,
-            nonce: auth_code.nonce.clone(),
-            name: None,
-            preferred_username: None,
-            email: None,
-            email_verified: None,
-            given_name: None,
-            family_name: None,
-        };
+        let issuer_url = IssuerUrl::new(issuer.clone()).map_err(|_| {
+            token_error(StatusCode::INTERNAL_SERVER_ERROR, "server_error", "Invalid issuer URL")
+        })?;
+
+        let mut standard_claims = openidconnect::StandardClaims::new(
+            SubjectIdentifier::new(user.uuid.to_string()),
+        );
 
         if scopes.contains(&"profile") {
-            claims.name = Some(user.display_name.clone());
-            claims.preferred_username = Some(user.preferred_username.clone());
-            claims.given_name = Some(user.first_name.clone());
-            claims.family_name = Some(user.last_name.clone());
+            standard_claims = standard_claims
+                .set_name(Some(LocalizedClaim::from(
+                    EndUserName::new(user.display_name.clone()),
+                )))
+                .set_preferred_username(Some(
+                    EndUserUsername::new(user.preferred_username.clone()),
+                ))
+                .set_given_name(Some(LocalizedClaim::from(
+                    EndUserGivenName::new(user.first_name.clone()),
+                )))
+                .set_family_name(Some(LocalizedClaim::from(
+                    EndUserFamilyName::new(user.last_name.clone()),
+                )));
         }
         if scopes.contains(&"email") {
-            claims.email = Some(user.email.clone());
-            claims.email_verified = Some(user.email_confirmed);
+            standard_claims = standard_claims
+                .set_email(Some(EndUserEmail::new(user.email.clone())))
+                .set_email_verified(Some(user.email_confirmed));
         }
 
-        Some(state.oidc_keys.sign_id_token(&claims).map_err(|_| {
+        let id_claims = CoreIdTokenClaims::new(
+            issuer_url,
+            vec![Audience::new(client_id.clone())],
+            Utc::now() + chrono::Duration::hours(1),
+            Utc::now(),
+            standard_claims,
+            EmptyAdditionalClaims {},
+        )
+        .set_nonce(auth_code.nonce.as_ref().map(|n| Nonce::new(n.clone())));
+
+        let access_token_obj = AccessToken::new(access_token.clone());
+
+        let signed_id_token = CoreIdToken::new(
+            id_claims,
+            &state.oidc_keys.signing_key,
+            CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
+            Some(&access_token_obj),
+            None,
+        )
+        .map_err(|_| {
             token_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "server_error",
                 "Failed to sign ID token",
             )
-        })?)
+        })?;
+
+        Some(signed_id_token.to_string())
     } else {
         None
     };
@@ -845,11 +859,37 @@ async fn handle_refresh_token_grant(
             )
         })?;
 
+    // Revoke the used refresh token and issue a new one (rotation)
+    let _ = state
+        .database
+        .collection::<RefreshToken>("refresh_tokens")
+        .update_one(
+            doc! { "token_hash": &token_hash },
+            doc! { "$set": { "revoked": true } },
+        )
+        .await;
+
+    let raw_new_token = generate_reset_token();
+    let new_token_hash = hash_token(&raw_new_token);
+    let new_refresh_token = RefreshToken {
+        token_hash: new_token_hash,
+        user_id: stored.user_id,
+        client_id: req_client_id.clone(),
+        scope: stored.scope.clone(),
+        created_at: Utc::now(),
+        revoked: false,
+    };
+    let _ = state
+        .database
+        .collection::<RefreshToken>("refresh_tokens")
+        .insert_one(new_refresh_token)
+        .await;
+
     Ok(Json(TokenResponse {
         access_token,
         token_type: "Bearer".to_string(),
         expires_in: 3600,
-        refresh_token: None,
+        refresh_token: Some(raw_new_token),
         id_token: None,
         scope: stored.scope,
     }))

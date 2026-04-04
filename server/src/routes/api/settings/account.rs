@@ -1,5 +1,5 @@
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use axum::{Extension, Json};
+use axum::{Extension, Json, http::StatusCode};
 use color_eyre::eyre::{self, OptionExt};
 use mongodb::bson::doc;
 use serde::Deserialize;
@@ -42,7 +42,7 @@ async fn delete_account(
     Extension(user_id): Extension<UserId>,
     session: Session,
     Json(body): Json<DeleteAccountBody>,
-) -> AxumResult<axum::http::StatusCode> {
+) -> AxumResult<StatusCode> {
     let user = state
         .database
         .collection::<User>("users")
@@ -88,5 +88,5 @@ async fn delete_account(
     // Destroy session
     session.flush().await?;
 
-    Ok(axum::http::StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT)
 }

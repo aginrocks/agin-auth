@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@components
 import { IconDeviceMobile, IconCheck } from '@tabler/icons-react';
 import QRCode from 'react-qr-code';
 import { FactorRow } from './factor-row';
-import { CopyButton, ErrorMsg, ExpandForm } from './helpers';
+import { CopyButton, ExpandForm } from './helpers';
 
 const nameSchema = z.object({
     display_name: z.string().min(1, 'Required').max(32),
@@ -27,11 +27,6 @@ type CodeForm = z.infer<typeof codeSchema>;
 export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; fully_enabled: boolean } | null | undefined; onRefetch: () => void }) {
     const [step, setStep] = useState<'idle' | 'name' | 'confirm'>('idle');
     const [setupData, setSetupData] = useState<{ secret: string; qr: string } | null>(null);
-    const [disableError, setDisableError] = useState('');
-
-    const enable = $api.useMutation('post', '/api/settings/factors/totp/enable');
-    const confirm = $api.useMutation('post', '/api/settings/factors/totp/enable/confirm');
-    const disable = $api.useMutation('delete', '/api/settings/factors/totp/disable');
 
     const isEnabled = totp?.fully_enabled ?? false;
 
@@ -45,38 +40,32 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
         defaultValues: { code: '' },
     });
 
-    const onNameSubmit = async (data: NameForm) => {
-        try {
-            const d = await enable.mutateAsync({ body: { display_name: data.display_name } });
-            setSetupData(d);
+    const enable = $api.useMutation('post', '/api/settings/factors/totp/enable', {
+        onSuccess: (data) => {
+            setSetupData(data);
             setStep('confirm');
-        } catch {
+        },
+        onError: () => {
             nameForm.setError('display_name', { message: 'Failed to start setup.' });
-        }
-    };
+        },
+    });
 
-    const onCodeSubmit = async (data: CodeForm) => {
-        try {
-            await confirm.mutateAsync({ body: { code: data.code } });
+    const confirmMutation = $api.useMutation('post', '/api/settings/factors/totp/enable/confirm', {
+        onSuccess: () => {
             setStep('idle');
             setSetupData(null);
             nameForm.reset();
             codeForm.reset();
             onRefetch();
-        } catch {
+        },
+        onError: () => {
             codeForm.setError('code', { message: 'Invalid code, try again.' });
-        }
-    };
+        },
+    });
 
-    const handleDisable = async () => {
-        setDisableError('');
-        try {
-            await disable.mutateAsync({});
-            onRefetch();
-        } catch {
-            setDisableError('Failed to disable.');
-        }
-    };
+    const disable = $api.useMutation('delete', '/api/settings/factors/totp/disable', {
+        onSuccess: () => onRefetch(),
+    });
 
     const handleToggle = () => {
         if (step !== 'idle') {
@@ -102,8 +91,10 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                 {step === 'idle' && isEnabled && (
                     <ExpandForm open>
                         <div className="pb-4 space-y-2">
-                            <ErrorMsg msg={disableError} />
-                            <button onClick={handleDisable} disabled={disable.isPending}
+                            {disable.isError && (
+                                <p className="text-xs text-destructive">Failed to disable.</p>
+                            )}
+                            <button onClick={() => disable.mutate({})} disabled={disable.isPending}
                                 className="flex items-center gap-1 text-xs text-destructive/60 hover:text-destructive transition-colors disabled:opacity-50">
                                 {disable.isPending ? 'Disabling…' : 'Disable'}
                             </button>
@@ -113,7 +104,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
 
                 <ExpandForm open={step === 'name'}>
                     <Form {...nameForm}>
-                        <form onSubmit={nameForm.handleSubmit(onNameSubmit)} className="space-y-3 max-w-sm pb-4">
+                        <form onSubmit={nameForm.handleSubmit(data => enable.mutate({ body: data }))} className="space-y-3 max-w-sm pb-4">
                             <FormField control={nameForm.control} name="display_name" render={({ field }) => (
                                 <FormItem className="space-y-1.5">
                                     <Label className="text-xs">Authenticator name</Label>
@@ -152,7 +143,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                                 </div>
                             </div>
                             <Form {...codeForm}>
-                                <form onSubmit={codeForm.handleSubmit(onCodeSubmit)} className="space-y-3 max-w-xs">
+                                <form onSubmit={codeForm.handleSubmit(data => confirmMutation.mutate({ body: data }))} className="space-y-3 max-w-xs">
                                     <FormField control={codeForm.control} name="code" render={({ field }) => (
                                         <FormItem className="space-y-1.5">
                                             <Label className="text-xs">Verification code</Label>
@@ -171,8 +162,8 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                                         </FormItem>
                                     )} />
                                     <div className="flex gap-2">
-                                        <Button size="sm" type="submit" disabled={confirm.isPending}>
-                                            <IconCheck size={13} /> {confirm.isPending ? 'Verifying…' : 'Confirm'}
+                                        <Button size="sm" type="submit" disabled={confirmMutation.isPending}>
+                                            <IconCheck size={13} /> {confirmMutation.isPending ? 'Verifying…' : 'Confirm'}
                                         </Button>
                                         <Button size="sm" variant="ghost" type="button" onClick={() => { setStep('idle'); setSetupData(null); codeForm.reset(); }}>Cancel</Button>
                                     </div>

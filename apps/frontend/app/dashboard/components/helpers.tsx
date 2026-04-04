@@ -4,21 +4,28 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { Input } from '@components/ui/input';
+import { Button } from '@components/ui/button';
 
 export function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
     return (
-        <button
-            onClick={() => {
-                navigator.clipboard.writeText(text);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
+        <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto px-2 py-1 text-xs text-muted-foreground"
+            onClick={async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                } catch {
+                    // Clipboard API unavailable (e.g. insecure context)
+                }
             }}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
             {copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
             {copied ? 'Copied' : 'Copy'}
-        </button>
+        </Button>
     );
 }
 

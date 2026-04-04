@@ -16,7 +16,7 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_scalar::{Scalar, Servable as _};
 
-use crate::{oidc::build_discovery, settings::Settings, state::AppState};
+use crate::{oidc::build_provider_metadata, settings::Settings, state::AppState};
 
 pub fn init_tracing() -> Result<()> {
     tracing_subscriber::Registry::default()
@@ -66,7 +66,10 @@ pub async fn init_axum(
                 get(move || async move {
                     let issuer = st.settings.general.public_url.to_string();
                     let issuer = issuer.trim_end_matches('/');
-                    Json(build_discovery(issuer))
+                    match build_provider_metadata(issuer) {
+                        Ok(metadata) => Json(metadata).into_response(),
+                        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build discovery document").into_response(),
+                    }
                 })
             },
         )
