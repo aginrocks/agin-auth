@@ -7,6 +7,7 @@ use crate::settings::Settings;
 
 #[derive(Clone)]
 pub struct AppState {
+    #[deprecated]
     pub database: Database,
     pub settings: Arc<Settings>,
     pub webauthn: Arc<Webauthn>,

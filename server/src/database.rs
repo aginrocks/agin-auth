@@ -30,12 +30,14 @@ macro_rules! database_object {
         #[derive(Partial, Debug, Serialize, Deserialize, ToSchema, Clone)]
         #[partial(omit(id $(, $($omitfield),* )?), derive(Debug, Serialize, Deserialize, ToSchema, Clone))]
         #[StructFields(pub)]
+        #[deprecated]
         pub struct $name {
             $($field)*
         }
     };
 }
 
+#[deprecated]
 pub async fn init_database(settings: &Settings) -> Result<Database> {
     let client = Client::with_uri_str(&settings.db.connection_string).await?;
     let database = client.database(&settings.db.database_name);
@@ -359,6 +361,7 @@ pub async fn get_user(
         .await
 }
 
+#[deprecated]
 pub async fn get_user_by_id(
     database: &Database,
     user_id: &ObjectId,
@@ -369,6 +372,7 @@ pub async fn get_user_by_id(
         .await
 }
 
+#[deprecated]
 pub async fn get_user_by_uuid(
     database: &Database,
     uuid: &uuid::Uuid,
@@ -379,6 +383,7 @@ pub async fn get_user_by_uuid(
         .await
 }
 
+#[deprecated]
 pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     let mut second_factors = vec![];
 
@@ -402,6 +407,7 @@ pub fn get_second_factors(user: &User) -> Vec<SecondFactor> {
     second_factors
 }
 
+#[deprecated]
 pub async fn set_recent_factor(
     database: &Database,
     user_id: &ObjectId,
