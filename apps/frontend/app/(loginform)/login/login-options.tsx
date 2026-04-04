@@ -64,7 +64,7 @@ export function LoginOptions() {
                 {options?.includes('password') && (
                     <div className="text-muted-foreground text-center text-sm mt-2">
                         <LinkComponent>
-                            <Link href="/register">Forgot Password?</Link>
+                            <Link href="/forgot-password">Forgot Password?</Link>
                         </LinkComponent>
                     </div>
                 )}

@@ -1,4 +1,6 @@
+use hex;
 use rand::{RngExt, distr::Alphanumeric, rngs::ThreadRng};
+use sha2::{Digest, Sha256};
 
 pub fn generate_client_id() -> String {
     let rng = ThreadRng::default();
@@ -7,4 +9,29 @@ pub fn generate_client_id() -> String {
         .take(24)
         .map(char::from)
         .collect()
+}
+
+pub fn generate_reset_token() -> String {
+    let rng = ThreadRng::default();
+
+    rng.sample_iter(&Alphanumeric)
+        .take(64)
+        .map(char::from)
+        .collect()
+}
+
+pub fn hash_token(token: &str) -> String {
+    hex::encode(Sha256::digest(token.as_bytes()))
+}
+
+pub fn hash_password(password: &str) -> color_eyre::eyre::Result<String> {
+    use argon2::{Argon2, password_hash::{PasswordHasher, SaltString, rand_core::OsRng}};
+
+    let salt = SaltString::generate(&mut OsRng);
+    let hash = Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|_| color_eyre::eyre::eyre!("Failed to hash password"))?
+        .to_string();
+
+    Ok(hash)
 }

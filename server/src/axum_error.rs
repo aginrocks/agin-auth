@@ -52,6 +52,10 @@ impl AxumError {
     pub fn unprocessable_entity(report: Report) -> Self {
         Self::with_status(report, StatusCode::UNPROCESSABLE_ENTITY)
     }
+
+    pub fn service_unavailable(report: Report) -> Self {
+        Self::with_status(report, StatusCode::SERVICE_UNAVAILABLE)
+    }
 }
 
 impl<E: Into<Report>> From<E> for AxumError {
