@@ -9,7 +9,6 @@ mod mongo_id;
 mod routes;
 mod settings;
 mod state;
-mod user_id;
 mod utils;
 mod validators;
 mod webauthn;
