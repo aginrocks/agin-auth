@@ -9,7 +9,7 @@ pub fn factor_config(factor_list: &FactorList) -> TokenStream {
 
     for FactorEntry {
         path,
-        slug: _,
+        slug,
         last_segment,
         module_segment: _,
     } in &factor_list.entries
@@ -17,11 +17,13 @@ pub fn factor_config(factor_list: &FactorList) -> TokenStream {
         // Register the factor to the enum
         let variant_name = &last_segment.ident;
         enum_variants.extend(quote! {
+            #[serde(rename = #slug)]
             #variant_name(<#path as ::auth_core::Factor>::Config),
         });
     }
 
     quote! {
+        #[derive(Clone, Debug, ::serde::Serialize, ::serde::Deserialize)]
         pub enum FactorConfig {
             #enum_variants
         }
@@ -46,7 +48,7 @@ pub fn factor_name(factor_list: &FactorList) -> TokenStream {
         });
     }
 
-    // TODO: Add `ToFacotrName` trait and autoamtically implement it for factors
+    // TODO: Add `ToFactorName` trait and autoamtically implement it for factors
     quote! {
         #[derive(Clone, Copy, PartialEq, Eq, Debug, ::serde::Serialize, ::serde::Deserialize)]
         pub enum FactorName {
