@@ -6,12 +6,13 @@ import { Input } from '@components/ui/input';
 import { LoginIcon } from '@components/ui/login-icon';
 import { LinkComponent } from '@components/ui/link';
 import { $api } from '@lib/providers/api';
-import { IconArrowRight, IconLock } from '@tabler/icons-react';
+import { IconArrowRight, IconLock, IconLoader2 } from '@tabler/icons-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useSearchParams } from 'next/navigation';
 import z from 'zod';
 
 const schema = z.object({
@@ -19,22 +20,34 @@ const schema = z.object({
 });
 type Schema = z.infer<typeof schema>;
 
-type Step = 'form' | 'sent';
+type Step = 'form' | 'sending' | 'sent';
 
 export default function Page() {
-    const [step, setStep] = useState<Step>('form');
+    const searchParams = useSearchParams();
+    const prefillEmail = searchParams.get('email') ?? '';
+    const isValidEmail = schema.safeParse({ email: prefillEmail }).success;
+    const [step, setStep] = useState<Step>(isValidEmail ? 'sending' : 'form');
+    const autoSubmitted = useRef(false);
 
     const form = useForm<Schema>({
         resolver: zodResolver(schema),
-        defaultValues: { email: '' },
+        defaultValues: { email: prefillEmail },
     });
 
     const requestReset = $api.useMutation('post', '/api/password-reset', {
         onSuccess: () => setStep('sent'),
         onError: (e) => {
+            setStep('form');
             form.setError('email', { message: (e as any)?.error || 'Something went wrong.' });
         },
     });
+
+    useEffect(() => {
+        if (isValidEmail && !autoSubmitted.current) {
+            autoSubmitted.current = true;
+            requestReset.mutate({ body: { email: prefillEmail } });
+        }
+    }, []);
 
     return (
         <div className="flex flex-col items-center">
@@ -93,6 +106,25 @@ export default function Page() {
                                 </div>
                             </form>
                         </Form>
+                    </motion.div>
+                ) : step === 'sending' ? (
+                    <motion.div
+                        key="sending"
+                        className="flex flex-col items-center w-full"
+                        transition={{ duration: 0.2 }}
+                        initial={{ opacity: 0, x: 8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                    >
+                        <LoginIcon>
+                            <IconLoader2 className="animate-spin" />
+                        </LoginIcon>
+                        <div className="mt-4 flex flex-col gap-1">
+                            <h1 className="font-semibold text-xl text-center">Sending reset link...</h1>
+                            <p className="text-sm text-center text-muted-foreground">
+                                Please wait while we send you a password reset email.
+                            </p>
+                        </div>
                     </motion.div>
                 ) : (
                     <motion.div

@@ -6,12 +6,13 @@ import {
     IconPassword,
     IconShieldLock,
 } from '@tabler/icons-react';
-import { screenAtom } from './page';
+import { FormSchema, screenAtom } from './page';
 import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { paths } from 'api-schema';
 import { LoginOption, LoginOptionProps } from '@components/ui/login-option';
 import Link from 'next/link';
 import { LinkComponent } from '@components/ui/link';
+import { useFormContext } from 'react-hook-form';
 
 export type TLoginOption =
     paths['/api/login/options']['get']['responses']['200']['content']['application/json']['options'][number];
@@ -39,6 +40,8 @@ export const OPTIONS_MAP: Record<TLoginOption, LoginOptionProps> = {
 export function LoginOptions() {
     const setScreen = useSetAtom(screenAtom);
     const options = useAtomValue(optionsAtom);
+    const form = useFormContext<FormSchema>();
+    const username = form.watch('username');
 
     return (
         <div className="flex flex-col items-center">
@@ -64,7 +67,7 @@ export function LoginOptions() {
                 {options?.includes('password') && (
                     <div className="text-muted-foreground text-center text-sm mt-2">
                         <LinkComponent>
-                            <Link href="/forgot-password">Forgot Password?</Link>
+                            <Link href={`/forgot-password${username ? `?email=${encodeURIComponent(username)}` : ''}`}>Forgot Password?</Link>
                         </LinkComponent>
                     </div>
                 )}
