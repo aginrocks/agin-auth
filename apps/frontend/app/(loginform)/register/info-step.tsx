@@ -17,7 +17,7 @@ export function InfoStep({ onNext }: InfoStepProps) {
     const form = useFormContext();
 
     return (
-        <div className="flex flex-col items-center">
+        <form className="flex flex-col items-center" onSubmit={(e) => { e.preventDefault(); onNext(); }}>
             <LoginIcon>
                 <IconUserPlus />
             </LoginIcon>
@@ -69,7 +69,7 @@ export function InfoStep({ onNext }: InfoStepProps) {
                         </FormItem>
                     )}
                 />
-                <Button type="button" onClick={onNext}>
+                <Button type="submit">
                     Next <IconArrowRight />
                 </Button>
                 <div className="text-muted-foreground text-center text-sm">
@@ -79,6 +79,6 @@ export function InfoStep({ onNext }: InfoStepProps) {
                     </LinkComponent>
                 </div>
             </div>
-        </div>
+        </form>
     );
 }
