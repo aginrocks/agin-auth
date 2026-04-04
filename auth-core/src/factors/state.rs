@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -15,7 +15,7 @@ use tower_sessions_core::Session;
 /// state synchronization issues.
 pub struct FactorState<T>
 where
-    T: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+    T: Send + Sync + Clone + Debug + Serialize + for<'de> Deserialize<'de>,
 {
     factor_name: &'static str,
     _state: PhantomData<T>,
@@ -29,7 +29,7 @@ pub enum FactorStateError {
 
 impl<T> FactorState<T>
 where
-    T: Send + Sync + Serialize + for<'de> Deserialize<'de>,
+    T: Send + Sync + Clone + Debug + Serialize + for<'de> Deserialize<'de>,
 {
     /// Constructs a new `FactorState`.
     ///

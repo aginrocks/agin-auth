@@ -1,5 +1,7 @@
 pub mod state;
 
+use std::fmt::Debug;
+
 use async_trait::async_trait;
 use color_eyre::eyre::Error;
 use serde::{Deserialize, Serialize};
@@ -183,7 +185,7 @@ pub trait Factor {
     /// **NEVER** store such state internally in your global state, because unlike this field,
     /// global state is not synchronized between server replicas and can lead to weird
     /// state synchronization issues.
-    type FactorState: Send + Sync + Serialize + for<'de> Deserialize<'de>;
+    type FactorState: Send + Sync + Clone + Debug + Serialize + for<'de> Deserialize<'de>;
 
     type EnableRequest: Send + Sync + ToSchema;
     type EnableResponse: Send + Sync + ToSchema;
