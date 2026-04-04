@@ -145,13 +145,10 @@ pub struct AuthenticateResponse<T> {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct NoData;
 
-/// Defines the interface for an authentication factor.
+/// Defines metadata for the factor.
 ///
-/// In Agin Auth a `Factor` represents any method of user authentication, such as TOTP, WebAuthn, Passwords, etc.
-/// Each factor can be enabled or disabled by the user, and multiple facotrs can (and should be) stacked together to provide multi-factor authentication (MFA).
-/// Factors define a trust level that can be then matched by `Policy` to enforce security requirements.
-#[async_trait]
-pub trait Factor {
+/// `PolicyEngine` relies on this data.
+pub trait FactorMetadata {
     /// Defines the authentication flow type of the factor.
     const FLOW_TYPE: FlowType;
 
@@ -160,9 +157,6 @@ pub trait Factor {
 
     /// Defines if the factor is sufficient alone or requires other factors.
     const ROLE: FactorRole;
-
-    /// A slug that will appear in the URL (e.g. password)
-    const SLUG: &'static str;
 
     fn flow_type(&self) -> FlowType {
         Self::FLOW_TYPE
@@ -175,11 +169,27 @@ pub trait Factor {
     fn role(&self) -> FactorRole {
         Self::ROLE
     }
+}
+
+/// Defines [`Factor`]'s slug.
+///
+/// Needs to be in another trait so it can be automatically implemented by the proc macro.
+pub trait FactorSlug {
+    /// A slug that will appear in the URL (e.g. password)
+    const SLUG: &'static str;
 
     fn slug(&self) -> &'static str {
         Self::SLUG
     }
+}
 
+/// Defines the interface for an authentication factor.
+///
+/// In Agin Auth a `Factor` represents any method of user authentication, such as TOTP, WebAuthn, Passwords, etc.
+/// Each factor can be enabled or disabled by the user, and multiple facotrs can (and should be) stacked together to provide multi-factor authentication (MFA).
+/// Factors define a trust level that can be then matched by `Policy` to enforce security requirements.
+#[async_trait]
+pub trait Factor: FactorMetadata + FactorSlug {
     /// Factor configuration stored in the database
     type Config: Send + Sync + ToSchema + Serialize + for<'de> Deserialize<'de>;
 

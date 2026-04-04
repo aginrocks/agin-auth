@@ -44,7 +44,7 @@ pub fn register(factor_list: FactorList) -> Result<proc_macro::TokenStream, syn:
         let slug_assertion = quote! {
             #[doc(hidden)]
             const _: () = assert!(
-                ::auth_core::str_eq(<#path as ::auth_core::Factor>::SLUG, #slug),
+                ::auth_core::str_eq(<#path as ::auth_core::FactorSlug>::SLUG, #slug),
                 concat!("slug missmatch for factor `", #last_segment_str, "`: slug `", #slug, "` doesn't match trait definition")
             );
         };

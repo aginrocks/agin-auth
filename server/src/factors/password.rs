@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use auth_core::{
     AuthenticateResponse, EnableResponse, Factor, FactorDisableError, FactorEnableError,
-    FactorError, FactorRole, FlowType, NoData, SecurityLevel,
+    FactorError, FactorMetadata, FactorRole, FactorSlug, FlowType, NoData, SecurityLevel,
 };
 use macros::factor;
 use utoipa_axum::router::OpenApiRouter;
@@ -14,13 +14,15 @@ pub fn routes() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().merge(factor())
 }
 
-#[async_trait]
-#[factor(slug = "password")]
-impl Factor for PasswordFactor {
+impl FactorMetadata for PasswordFactor {
     const FLOW_TYPE: FlowType = FlowType::Simple;
     const SECURITY_LEVEL: SecurityLevel = SecurityLevel::Knowledge;
     const ROLE: FactorRole = FactorRole::Primary;
+}
 
+#[async_trait]
+#[factor(slug = "password")]
+impl Factor for PasswordFactor {
     type Config = NoData;
 
     type FactorState = NoData;
@@ -33,7 +35,9 @@ impl Factor for PasswordFactor {
         &self,
         args: Self::EnableRequest,
     ) -> Result<EnableResponse<Self::EnableResponse>, FactorEnableError> {
-        Err(FactorEnableError::Other(FactorError::Other(color_eyre::eyre::eyre!("Not implemented"))))
+        Err(FactorEnableError::Other(FactorError::Other(
+            color_eyre::eyre::eyre!("Not implemented"),
+        )))
     }
 
     type DisableRequest = NoData;
@@ -44,7 +48,9 @@ impl Factor for PasswordFactor {
         &self,
         args: Self::DisableRequest,
     ) -> Result<Self::DisableResponse, FactorDisableError> {
-        Err(FactorDisableError::Other(FactorError::Other(color_eyre::eyre::eyre!("Not implemented"))))
+        Err(FactorDisableError::Other(FactorError::Other(
+            color_eyre::eyre::eyre!("Not implemented"),
+        )))
     }
 
     type AuthenticateRequest = NoData;
@@ -55,6 +61,8 @@ impl Factor for PasswordFactor {
         &self,
         args: Self::AuthenticateRequest,
     ) -> Result<AuthenticateResponse<Self::AuthenticateResponse>, FactorError> {
-        Err(FactorError::Other(color_eyre::eyre::eyre!("Not implemented")))
+        Err(FactorError::Other(color_eyre::eyre::eyre!(
+            "Not implemented"
+        )))
     }
 }
