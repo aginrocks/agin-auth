@@ -23,6 +23,8 @@ impl Factor for PasswordFactor {
 
     type Config = NoData;
 
+    type FactorState = NoData;
+
     type EnableRequest = NoData;
     type EnableResponse = NoData;
 

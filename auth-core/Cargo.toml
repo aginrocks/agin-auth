@@ -8,5 +8,6 @@ async-trait.workspace = true
 color-eyre.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+tower-sessions-core.workspace = true
 utoipa.workspace = true
 validator.workspace = true

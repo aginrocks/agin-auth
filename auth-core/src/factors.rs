@@ -1,3 +1,5 @@
+pub mod state;
+
 use async_trait::async_trait;
 use color_eyre::eyre::Error;
 use serde::{Deserialize, Serialize};
@@ -129,6 +131,10 @@ pub struct AuthenticateResponse<T> {
     pub data: T,
 }
 
+/// Use this struct in places that you would normally use `()`,
+/// but you're unable to due to unsatisfied trait boudnds.
+///
+/// An example is using it in associated types in [`Factor`] trait implementations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct NoData;
 
@@ -169,6 +175,15 @@ pub trait Factor {
 
     /// Factor configuration stored in the database
     type Config: Send + Sync + ToSchema + Serialize + for<'de> Deserialize<'de>;
+
+    /// State accessed during the authentication flow for this factor.
+    ///
+    /// Can be used to store state like issued challenges.
+    ///
+    /// **NEVER** store such state internally in your global state, because unlike this field,
+    /// global state is not synchronized between server replicas and can lead to weird
+    /// state synchronization issues.
+    type FactorState: Send + Sync + Serialize + for<'de> Deserialize<'de>;
 
     type EnableRequest: Send + Sync + ToSchema;
     type EnableResponse: Send + Sync + ToSchema;

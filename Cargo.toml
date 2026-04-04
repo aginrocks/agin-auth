@@ -28,6 +28,9 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
+tower-sessions = { version = "0.14.0", default-features = false }
+tower-sessions-core = { version = "0.14.0" }
+tower-sessions-redis-store = "0.16.0"
 tracing = "0.1.44"
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.23", features = [

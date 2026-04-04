@@ -270,6 +270,7 @@ dependencies = [
  "color-eyre",
  "serde",
  "thiserror 2.0.18",
+ "tower-sessions-core",
  "utoipa",
  "validator",
 ]
