@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
@@ -49,10 +49,14 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
 
     const isEnabled = pgp.length > 0;
 
-    const handleToggle = () => {
+    const onSubmit = useCallback((data: PgpForm) => {
+        enable.mutate({ body: data });
+    }, [enable]);
+
+    const handleToggle = useCallback(() => {
         setOpen(v => !v);
         setConfirmDelete(false);
-    };
+    }, []);
 
     return (
         <FactorRow
@@ -98,7 +102,7 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
             ) : (
                 <ExpandForm open={open}>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(data => enable.mutate({ body: data }))} className="ml-9 px-5 pb-4 space-y-3 max-w-sm">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="ml-9 px-5 pb-4 space-y-3 max-w-sm">
                             <FormField control={form.control} name="display_name" render={({ field }) => (
                                 <FormItem className="space-y-1.5">
                                     <Label className="text-xs">Name</Label>
