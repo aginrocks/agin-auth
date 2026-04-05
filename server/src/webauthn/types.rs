@@ -1,4 +1,7 @@
 //! Types related to attestation (Registration)
+//!
+//! This file contains types copied from the `webauthn-rs` crate.
+#![allow(dead_code, unused_imports, clippy::enum_variant_names)]
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

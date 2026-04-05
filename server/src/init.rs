@@ -16,7 +16,7 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_scalar::{Scalar, Servable as _};
 
-use crate::{oidc::build_provider_metadata, settings::Settings, state::AppState};
+use crate::{settings::Settings, state::AppState};
 
 pub fn init_tracing() -> Result<()> {
     tracing_subscriber::Registry::default()
@@ -59,21 +59,6 @@ pub async fn init_axum(
 
     let router = router
         .nest(openapi_prefix, docs)
-        .route("/.well-known/openid-configuration", {
-            let st = state.clone();
-            get(move || async move {
-                let issuer = st.settings.general.public_url.to_string();
-                let issuer = issuer.trim_end_matches('/');
-                match build_provider_metadata(issuer) {
-                    Ok(metadata) => Json(metadata).into_response(),
-                    Err(_) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to build discovery document",
-                    )
-                        .into_response(),
-                }
-            })
-        })
         .layer(Extension(state))
         .layer(session_layer)
         .layer(ip_source.into_extension())
