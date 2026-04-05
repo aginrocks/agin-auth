@@ -11,3 +11,6 @@ thiserror.workspace = true
 tower-sessions-core.workspace = true
 utoipa.workspace = true
 validator.workspace = true
+
+[lints]
+workspace = true

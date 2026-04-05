@@ -14,3 +14,6 @@ darling = "0.23.0"
 proc-macro2 = "1.0.106"
 strum.workspace = true
 Inflector = "0.11.4"
+
+[lints]
+workspace = true

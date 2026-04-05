@@ -68,3 +68,6 @@ webauthn-rs = { version = "0.5.4", features = [
     "conditional-ui",
 ] }
 webauthn-rs-proto = "0.5.4"
+
+[lints]
+workspace = true

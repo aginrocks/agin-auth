@@ -16,3 +16,6 @@ serde_with = "3.18.0"
 strum.workspace = true
 ts-rs = { version = "12.0.1", features = ["chrono-impl"], optional = true }
 utoipa = { workspace = true, features = ["chrono", "macros"], optional = true }
+
+[lints]
+workspace = true
