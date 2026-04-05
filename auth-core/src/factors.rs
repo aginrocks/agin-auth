@@ -157,7 +157,18 @@ pub trait FactorMetadata {
 
     /// Defines if the factor is sufficient alone or requires other factors.
     const ROLE: FactorRole;
+}
 
+/// Allows dynamic access to properties defined in [`FactorMetadata`].
+///
+/// Implemented automatically for types that implement [`FactorMetadata`] thanks to a blanket impl.
+pub trait FactorMetadataDynamic {
+    fn flow_type(&self) -> FlowType;
+    fn security_level(&self) -> SecurityLevel;
+    fn role(&self) -> FactorRole;
+}
+
+impl<T: FactorMetadata> FactorMetadataDynamic for T {
     fn flow_type(&self) -> FlowType {
         Self::FLOW_TYPE
     }
@@ -177,7 +188,16 @@ pub trait FactorMetadata {
 pub trait FactorSlug {
     /// A slug that will appear in the URL (e.g. password)
     const SLUG: &'static str;
+}
 
+/// Allows dynamic access to properties defined in [`FactorSlug`].
+///
+/// Implemented automatically for types that implement [`FactorSlug`] thanks to a blanket impl.
+pub trait FactorSlugDynamic {
+    fn slug(&self) -> &'static str;
+}
+
+impl<T: FactorSlug> FactorSlugDynamic for T {
     fn slug(&self) -> &'static str {
         Self::SLUG
     }
