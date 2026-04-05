@@ -22,7 +22,7 @@ pub fn factor(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let input = syn::parse_macro_input!(input as syn::ItemImpl);
 
-    match factor::factor(args, input) {
+    match factor::factor(&args, input) {
         Ok(x) => x,
         Err(e) => e.write_errors().into(),
     }
@@ -34,7 +34,7 @@ pub fn factor(args: TokenStream, input: TokenStream) -> TokenStream {
 pub fn register_factors(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as FactorList);
 
-    match register::register(input) {
+    match register::register(&input) {
         Ok(x) => x,
         Err(e) => e.to_compile_error().into(),
     }

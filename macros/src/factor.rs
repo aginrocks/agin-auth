@@ -16,7 +16,7 @@ mod generate_handler;
 mod router;
 
 pub fn factor(
-    args: args::FactorArgs,
+    args: &args::FactorArgs,
     input: syn::ItemImpl,
 ) -> Result<proc_macro::TokenStream, darling::Error> {
     let self_ty = match &*input.self_ty {
@@ -73,7 +73,7 @@ pub fn factor(
         tokens.extend(handler);
     }
 
-    let router = generate_router(routes, impl_kind);
+    let router = generate_router(&routes, impl_kind);
     tokens.extend(router);
 
     // Validate the slug

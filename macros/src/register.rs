@@ -14,7 +14,7 @@ pub mod entry;
 pub mod enums;
 pub mod list;
 
-pub fn register(factor_list: FactorList) -> Result<proc_macro::TokenStream, syn::Error> {
+pub fn register(factor_list: &FactorList) -> Result<proc_macro::TokenStream, syn::Error> {
     let mut output = TokenStream::new();
 
     let mut seen_factors = HashSet::new();
@@ -63,8 +63,8 @@ pub fn register(factor_list: FactorList) -> Result<proc_macro::TokenStream, syn:
     };
     output.extend(handler);
 
-    output.extend(factor_config(&factor_list));
-    output.extend(factor_name(&factor_list));
+    output.extend(factor_config(factor_list));
+    output.extend(factor_name(factor_list));
 
     Ok(output.into())
 }

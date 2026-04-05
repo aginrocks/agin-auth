@@ -4,7 +4,7 @@ pub mod object_id_as_string {
     use mongodb::bson;
     use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 
-    pub fn serialize<S>(id: &Option<ObjectId>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(id: Option<&ObjectId>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {

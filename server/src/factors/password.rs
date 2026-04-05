@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use auth_core::{
     AuthenticateResponse, EnableResponse, Factor, FactorDisableError, FactorEnableError,
-    FactorError, FactorMetadata, FactorRole, FactorSlug, FlowType, NoData, SecurityLevel,
+    FactorError, FactorMetadata, FactorRole, FlowType, NoData, SecurityLevel,
 };
 use macros::factor;
 use utoipa_axum::router::OpenApiRouter;
