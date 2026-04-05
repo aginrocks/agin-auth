@@ -1,7 +1,20 @@
+mod definitions;
+mod utils;
+
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::Type;
 
-use crate::{FactorList, register::entry::FactorEntry};
+use crate::{
+    FactorList,
+    register::{
+        entry::FactorEntry,
+        enums::{
+            definitions::{FLOW_TYPE, ROLE, SECURITY_LEVEL},
+            utils::{implement_field_match, match_factors},
+        },
+    },
+};
 
 /// `FactorConfig` enum with all possible configs
 pub fn factor_config(factor_list: &FactorList) -> TokenStream {
@@ -32,6 +45,7 @@ pub fn factor_config(factor_list: &FactorList) -> TokenStream {
 
 pub fn factor_name(factor_list: &FactorList) -> TokenStream {
     let mut enum_variants = TokenStream::new();
+    let mut output = TokenStream::new();
 
     for FactorEntry {
         path: _,
@@ -48,11 +62,22 @@ pub fn factor_name(factor_list: &FactorList) -> TokenStream {
         });
     }
 
+    let factor_name_ty: Type = syn::parse_str("FactorName").expect("valid type");
+
     // TODO: Add `ToFactorName` trait and autoamtically implement it for factors
-    quote! {
+    output.extend(quote! {
         #[derive(Clone, Copy, PartialEq, Eq, Debug, ::serde::Serialize, ::serde::Deserialize)]
-        pub enum FactorName {
+        pub enum #factor_name_ty {
             #enum_variants
         }
-    }
+    });
+
+    output.extend(implement_field_match(
+        factor_list,
+        &[&FLOW_TYPE, &SECURITY_LEVEL, &ROLE],
+        &factor_name_ty,
+        &syn::parse_str("::auth_core::FactorMetadataDynamic").expect("valid path"),
+    ));
+
+    output
 }
