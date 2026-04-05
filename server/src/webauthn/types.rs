@@ -1,3 +1,6 @@
+// This file describes a foreign API, so we disable all lints.
+#![allow(warnings)]
+
 //! Types related to attestation (Registration)
 
 use serde::{Deserialize, Serialize};

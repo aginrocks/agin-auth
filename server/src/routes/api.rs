@@ -7,7 +7,7 @@ mod settings;
 use axum::middleware;
 use serde::{Deserialize, Serialize};
 use strum::Display;
-use utoipa::{ToSchema, schema};
+use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 
 use crate::{middlewares::require_auth::require_auth, state::AppState};
