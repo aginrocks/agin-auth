@@ -48,12 +48,6 @@ pub struct BadRequestError {
     error: String,
 }
 
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({"success": true}))]
-pub struct RegisterSuccess {
-    success: bool,
-}
-
 /// Register
 #[utoipa::path(
     method(post),

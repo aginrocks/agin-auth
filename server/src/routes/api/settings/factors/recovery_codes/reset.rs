@@ -9,7 +9,9 @@ use crate::{
     axum_error::{AxumError, AxumResult},
     database::{RecoveryCodeFactor, User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
-    routes::api::settings::factors::recovery_codes::{generate_recovery_codes, hash_recovery_codes},
+    routes::api::settings::factors::recovery_codes::{
+        generate_recovery_codes, hash_recovery_codes,
+    },
     state::AppState,
 };
 
@@ -74,7 +76,10 @@ async fn reset_recovery_codes(
         let email = user.email.clone();
         let mail = mail.clone();
         tokio::spawn(async move {
-            if let Err(e) = mail.send_factor_added(&email, "recovery codes (regenerated)").await {
+            if let Err(e) = mail
+                .send_factor_added(&email, "recovery codes (regenerated)")
+                .await
+            {
                 tracing::warn!(error = ?e, "Failed to send factor notification");
             }
         });

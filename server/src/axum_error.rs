@@ -44,6 +44,7 @@ impl AxumError {
         Self::with_status(report, StatusCode::NOT_FOUND)
     }
 
+    #[allow(dead_code)]
     pub fn conflict(report: Report) -> Self {
         Self::with_status(report, StatusCode::CONFLICT)
     }

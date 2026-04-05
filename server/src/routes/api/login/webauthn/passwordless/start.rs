@@ -4,10 +4,7 @@ use tower_sessions::Session;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use webauthn_rs::prelude::RequestChallengeResponse;
 
-use crate::{
-    axum_error::AxumResult,
-    state::AppState,
-};
+use crate::{axum_error::AxumResult, state::AppState};
 
 pub fn routes() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(passwordless_start))

@@ -8,10 +8,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use validator::Validate;
 
 use crate::{
-    axum_error::AxumResult,
-    database::User,
-    middlewares::require_auth::UserId,
-    state::AppState,
+    axum_error::AxumResult, database::User, middlewares::require_auth::UserId, state::AppState,
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {

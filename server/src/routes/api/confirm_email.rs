@@ -1,4 +1,8 @@
-use axum::{Extension, Json, extract::Query, response::{Html, IntoResponse}};
+use axum::{
+    Extension, Json,
+    extract::Query,
+    response::{Html, IntoResponse},
+};
 use axum_valid::Valid;
 use chrono::{DateTime, Duration, Utc};
 use color_eyre::eyre;
@@ -98,7 +102,9 @@ async fn confirm_email(
         .await?;
 
     let Some(token_doc) = token_doc else {
-        return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
+        return Err(AxumError::bad_request(eyre::eyre!(
+            "Invalid or expired token"
+        )));
     };
 
     if Utc::now() > token_doc.expires_at {
@@ -114,7 +120,9 @@ async fn confirm_email(
                 tracing::warn!(error = ?e, "Failed to clean up expired email confirmation tokens");
             }
         });
-        return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
+        return Err(AxumError::bad_request(eyre::eyre!(
+            "Invalid or expired token"
+        )));
     }
 
     let result = state

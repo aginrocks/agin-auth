@@ -338,14 +338,6 @@ impl Application {
     }
 }
 
-database_object!(Group {
-    #[serde(rename = "_id", with = "object_id_as_string_required")]
-    #[schema(value_type = String)]
-    id: ObjectId,
-    name: String,
-    is_admin: bool,
-});
-
 pub async fn get_user(
     database: &Database,
     username_or_email: &str,

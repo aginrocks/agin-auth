@@ -109,7 +109,10 @@ async fn authorize_get(
         .await?;
 
     if user_id.is_none()
-        || !matches!(auth_state, Some(crate::routes::api::AuthState::Authenticated))
+        || !matches!(
+            auth_state,
+            Some(crate::routes::api::AuthState::Authenticated)
+        )
     {
         return Err(AxumError::unauthorized(eyre::eyre!(
             "Login required. Redirect to login page first."
@@ -206,7 +209,10 @@ async fn authorize_post(
     let auth_state = session
         .get::<crate::routes::api::AuthState>("auth_state")
         .await?;
-    if !matches!(auth_state, Some(crate::routes::api::AuthState::Authenticated)) {
+    if !matches!(
+        auth_state,
+        Some(crate::routes::api::AuthState::Authenticated)
+    ) {
         return Err(AxumError::unauthorized(eyre::eyre!("Not authenticated")));
     }
 
@@ -220,9 +226,7 @@ async fn authorize_post(
         .ok_or_else(|| AxumError::bad_request(eyre::eyre!("Unknown client_id")))?;
 
     if !app.redirect_uris.contains(&body.redirect_uri) {
-        return Err(AxumError::bad_request(eyre::eyre!(
-            "Invalid redirect_uri"
-        )));
+        return Err(AxumError::bad_request(eyre::eyre!("Invalid redirect_uri")));
     }
 
     // Check user group access
@@ -235,10 +239,7 @@ async fn authorize_post(
         .ok_or_else(|| AxumError::bad_request(eyre::eyre!("User not found")))?;
 
     if !app.allowed_groups.is_empty() {
-        let has_access = user
-            .groups
-            .iter()
-            .any(|g| app.allowed_groups.contains(g));
+        let has_access = user.groups.iter().any(|g| app.allowed_groups.contains(g));
         if !has_access {
             return Err(AxumError::forbidden(eyre::eyre!(
                 "You don't have access to this application"
@@ -270,11 +271,7 @@ async fn authorize_post(
 
     // Build redirect URL with code and state
     let mut redirect_url = body.redirect_uri.clone();
-    redirect_url.push_str(if redirect_url.contains('?') {
-        "&"
-    } else {
-        "?"
-    });
+    redirect_url.push_str(if redirect_url.contains('?') { "&" } else { "?" });
     redirect_url.push_str(&format!("code={code}"));
     if let Some(ref st) = body.state {
         redirect_url.push_str(&format!("&state={}", urlencoding::encode(st)));
@@ -351,21 +348,15 @@ fn extract_client_credentials(
     body: &TokenRequest,
 ) -> (Option<String>, Option<String>) {
     // Try Basic auth first
-    if let Some(auth) = headers.get("authorization") {
-        if let Ok(auth_str) = auth.to_str() {
-            if let Some(basic) = auth_str.strip_prefix("Basic ") {
-                if let Ok(decoded) = base64::Engine::decode(
-                    &base64::engine::general_purpose::STANDARD,
-                    basic.trim(),
-                ) {
-                    if let Ok(creds) = String::from_utf8(decoded) {
-                        if let Some((id, secret)) = creds.split_once(':') {
-                            return (Some(id.to_string()), Some(secret.to_string()));
-                        }
-                    }
-                }
-            }
-        }
+    if let Some(auth) = headers.get("authorization")
+        && let Ok(auth_str) = auth.to_str()
+        && let Some(basic) = auth_str.strip_prefix("Basic ")
+        && let Ok(decoded) =
+            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, basic.trim())
+        && let Ok(creds) = String::from_utf8(decoded)
+        && let Some((id, secret)) = creds.split_once(':')
+    {
+        return (Some(id.to_string()), Some(secret.to_string()));
     }
 
     // Fall back to body parameters
@@ -378,9 +369,10 @@ async fn handle_authorization_code_grant(
     client_id: &Option<String>,
     client_secret: &Option<String>,
 ) -> Result<Json<TokenResponse>, axum::response::Response> {
-    let code = body.code.as_ref().ok_or_else(|| {
-        token_error(StatusCode::BAD_REQUEST, "invalid_request", "Missing code")
-    })?;
+    let code = body
+        .code
+        .as_ref()
+        .ok_or_else(|| token_error(StatusCode::BAD_REQUEST, "invalid_request", "Missing code"))?;
 
     let redirect_uri = body.redirect_uri.as_ref().ok_or_else(|| {
         token_error(
@@ -469,13 +461,7 @@ async fn handle_authorization_code_grant(
                 "Database error",
             )
         })?
-        .ok_or_else(|| {
-            token_error(
-                StatusCode::BAD_REQUEST,
-                "invalid_client",
-                "Unknown client",
-            )
-        })?;
+        .ok_or_else(|| token_error(StatusCode::BAD_REQUEST, "invalid_client", "Unknown client"))?;
 
     if matches!(app.client_type, crate::database::ClientType::Confidential) {
         let expected_secret = app.client_secret.as_ref().ok_or_else(|| {
@@ -539,13 +525,7 @@ async fn handle_authorization_code_grant(
                 "Database error",
             )
         })?
-        .ok_or_else(|| {
-            token_error(
-                StatusCode::BAD_REQUEST,
-                "invalid_grant",
-                "User not found",
-            )
-        })?;
+        .ok_or_else(|| token_error(StatusCode::BAD_REQUEST, "invalid_grant", "User not found"))?;
 
     let issuer = state
         .settings
@@ -582,27 +562,28 @@ async fn handle_authorization_code_grant(
     // Build ID token if openid scope requested
     let id_token = if scopes.contains(&"openid") {
         let issuer_url = IssuerUrl::new(issuer.clone()).map_err(|_| {
-            token_error(StatusCode::INTERNAL_SERVER_ERROR, "server_error", "Invalid issuer URL")
+            token_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "server_error",
+                "Invalid issuer URL",
+            )
         })?;
 
-        let mut standard_claims = openidconnect::StandardClaims::new(
-            SubjectIdentifier::new(user.uuid.to_string()),
-        );
+        let mut standard_claims =
+            openidconnect::StandardClaims::new(SubjectIdentifier::new(user.uuid.to_string()));
 
         if scopes.contains(&"profile") {
             standard_claims = standard_claims
-                .set_name(Some(LocalizedClaim::from(
-                    EndUserName::new(user.display_name.clone()),
-                )))
-                .set_preferred_username(Some(
-                    EndUserUsername::new(user.preferred_username.clone()),
-                ))
-                .set_given_name(Some(LocalizedClaim::from(
-                    EndUserGivenName::new(user.first_name.clone()),
-                )))
-                .set_family_name(Some(LocalizedClaim::from(
-                    EndUserFamilyName::new(user.last_name.clone()),
-                )));
+                .set_name(Some(LocalizedClaim::from(EndUserName::new(
+                    user.display_name.clone(),
+                ))))
+                .set_preferred_username(Some(EndUserUsername::new(user.preferred_username.clone())))
+                .set_given_name(Some(LocalizedClaim::from(EndUserGivenName::new(
+                    user.first_name.clone(),
+                ))))
+                .set_family_name(Some(LocalizedClaim::from(EndUserFamilyName::new(
+                    user.last_name.clone(),
+                ))));
         }
         if scopes.contains(&"email") {
             standard_claims = standard_claims
@@ -767,13 +748,7 @@ async fn handle_refresh_token_grant(
                 "Database error",
             )
         })?
-        .ok_or_else(|| {
-            token_error(
-                StatusCode::BAD_REQUEST,
-                "invalid_client",
-                "Unknown client",
-            )
-        })?;
+        .ok_or_else(|| token_error(StatusCode::BAD_REQUEST, "invalid_client", "Unknown client"))?;
 
     if matches!(app.client_type, crate::database::ClientType::Confidential) {
         let expected = app.client_secret.as_ref().ok_or_else(|| {
@@ -800,14 +775,13 @@ async fn handle_refresh_token_grant(
     }
 
     // Get user
-    let user_oid =
-        mongodb::bson::oid::ObjectId::parse_str(&stored.user_id).map_err(|_| {
-            token_error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "server_error",
-                "Invalid user_id",
-            )
-        })?;
+    let user_oid = mongodb::bson::oid::ObjectId::parse_str(&stored.user_id).map_err(|_| {
+        token_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "server_error",
+            "Invalid user_id",
+        )
+    })?;
 
     let user = state
         .database
@@ -821,13 +795,7 @@ async fn handle_refresh_token_grant(
                 "Database error",
             )
         })?
-        .ok_or_else(|| {
-            token_error(
-                StatusCode::BAD_REQUEST,
-                "invalid_grant",
-                "User not found",
-            )
-        })?;
+        .ok_or_else(|| token_error(StatusCode::BAD_REQUEST, "invalid_grant", "User not found"))?;
 
     let issuer = state
         .settings
@@ -979,13 +947,7 @@ async fn userinfo(
                 "Database error",
             )
         })?
-        .ok_or_else(|| {
-            token_error(
-                StatusCode::UNAUTHORIZED,
-                "invalid_token",
-                "User not found",
-            )
-        })?;
+        .ok_or_else(|| token_error(StatusCode::UNAUTHORIZED, "invalid_token", "User not found"))?;
 
     let scopes: Vec<&str> = claims.scope.split_whitespace().collect();
 
@@ -1016,11 +978,7 @@ async fn userinfo(
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-fn token_error(
-    status: StatusCode,
-    error: &str,
-    description: &str,
-) -> axum::response::Response {
+fn token_error(status: StatusCode, error: &str, description: &str) -> axum::response::Response {
     let body = TokenError {
         error: error.to_string(),
         error_description: description.to_string(),

@@ -1,4 +1,3 @@
-use hex;
 use rand::{RngExt, distr::Alphanumeric, rngs::ThreadRng};
 use sha2::{Digest, Sha256};
 
@@ -25,7 +24,10 @@ pub fn hash_token(token: &str) -> String {
 }
 
 pub fn hash_password(password: &str) -> color_eyre::eyre::Result<String> {
-    use argon2::{Argon2, password_hash::{PasswordHasher, SaltString, rand_core::OsRng}};
+    use argon2::{
+        Argon2,
+        password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
+    };
 
     let salt = SaltString::generate(&mut OsRng);
     let hash = Argon2::default()

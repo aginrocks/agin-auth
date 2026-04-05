@@ -61,7 +61,9 @@ async fn change_password(
         .password
         .password_hash
         .as_deref()
-        .ok_or_else(|| AxumError::bad_request(eyre::eyre!("Password is not set for this account")))?;
+        .ok_or_else(|| {
+            AxumError::bad_request(eyre::eyre!("Password is not set for this account"))
+        })?;
 
     let parsed_hash = PasswordHash::new(password_hash)
         .map_err(|_| eyre::eyre!("Failed to parse password hash"))?;

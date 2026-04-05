@@ -54,11 +54,12 @@ async fn passwordless_finish(
             AxumError::unauthorized(eyre::eyre!("Failed to identify credential: {}", e))
         })?;
 
-    let user = get_user_by_uuid(&state.database, &user_uuid)
-        .await?
-        .ok_or(AxumError::unauthorized(eyre::eyre!(
-            "User not found for this credential"
-        )))?;
+    let user =
+        get_user_by_uuid(&state.database, &user_uuid)
+            .await?
+            .ok_or(AxumError::unauthorized(eyre::eyre!(
+                "User not found for this credential"
+            )))?;
 
     let discoverable_keys = user
         .auth_factors

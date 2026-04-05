@@ -134,14 +134,15 @@ async fn respond_to_pgp_challenge(
         return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
     }
 
-    let (public_key, _) =
-        SignedPublicKey::from_string(&pgp_factor.public_key)
-            .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
+    let (public_key, _) = SignedPublicKey::from_string(&pgp_factor.public_key)
+        .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
 
     msg.verify(&public_key)
         .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
 
-    session.remove::<PgpChallengeConfig>("login::pgp_challenge").await?;
+    session
+        .remove::<PgpChallengeConfig>("login::pgp_challenge")
+        .await?;
 
     session.insert("user_id", user.id).await?;
 

@@ -78,10 +78,9 @@ const KEY_FILE: &str = "oidc-signing-key.pem";
 pub fn init_oidc_keys() -> Result<Arc<OidcKeys>> {
     let (private_key, public_key) = if std::path::Path::new(KEY_FILE).exists() {
         info!("Loading OIDC signing key from {KEY_FILE}");
-        let pem =
-            std::fs::read_to_string(KEY_FILE).wrap_err("Failed to read OIDC signing key")?;
-        let private_key = RsaPrivateKey::from_pkcs1_pem(&pem)
-            .wrap_err("Failed to parse OIDC signing key")?;
+        let pem = std::fs::read_to_string(KEY_FILE).wrap_err("Failed to read OIDC signing key")?;
+        let private_key =
+            RsaPrivateKey::from_pkcs1_pem(&pem).wrap_err("Failed to parse OIDC signing key")?;
         let public_key = RsaPublicKey::from(&private_key);
         (private_key, public_key)
     } else {
@@ -158,12 +157,11 @@ impl OidcKeys {
 
 /// Build the OIDC discovery document using `CoreProviderMetadata`.
 pub fn build_provider_metadata(issuer: &str) -> Result<CoreProviderMetadata> {
-    let issuer_url =
-        IssuerUrl::new(issuer.to_string()).wrap_err("Invalid issuer URL")?;
+    let issuer_url = IssuerUrl::new(issuer.to_string()).wrap_err("Invalid issuer URL")?;
     let auth_url = AuthUrl::new(format!("{issuer}/api/oauth/authorize"))
         .wrap_err("Invalid authorization URL")?;
-    let jwks_url = JsonWebKeySetUrl::new(format!("{issuer}/api/oauth/jwks"))
-        .wrap_err("Invalid JWKS URL")?;
+    let jwks_url =
+        JsonWebKeySetUrl::new(format!("{issuer}/api/oauth/jwks")).wrap_err("Invalid JWKS URL")?;
 
     let provider_metadata = CoreProviderMetadata::new(
         issuer_url,
@@ -175,8 +173,7 @@ pub fn build_provider_metadata(issuer: &str) -> Result<CoreProviderMetadata> {
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(
-        TokenUrl::new(format!("{issuer}/api/oauth/token"))
-            .wrap_err("Invalid token URL")?,
+        TokenUrl::new(format!("{issuer}/api/oauth/token")).wrap_err("Invalid token URL")?,
     ))
     .set_userinfo_endpoint(Some(
         UserInfoUrl::new(format!("{issuer}/api/oauth/userinfo"))
