@@ -1,6 +1,6 @@
-use auth_core::{Factor, FactorMetadataDynamic, FactorRole};
+use auth_core::{FactorMetadataDynamic, FactorRole};
 
-use crate::{factors::FactorName, flow::context::FlowContext};
+use crate::flow::context::FlowContext;
 
 /// A policy engine that is instantiated per step in order to perform a decision.
 pub struct PolicyEngine {
