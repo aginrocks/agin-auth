@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
@@ -26,6 +26,7 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
     const [addOpen, setAddOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<{ fingerprint: string; display_name: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const addDialogResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const form = useForm<PgpForm>({
         resolver: zodResolver(pgpSchema),
@@ -34,8 +35,7 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
 
     const enable = $api.useMutation('post', '/api/settings/factors/pgp/enable', {
         onSuccess: () => {
-            form.reset();
-            setAddOpen(false);
+            closeAddDialog();
             onRefetch();
         },
         onError: () => {
@@ -62,6 +62,26 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
         deleteKey.mutate({ params: { path: { fingerprint: deleteTarget.fingerprint } } });
     };
 
+    const closeAddDialog = useCallback(() => {
+        if (addDialogResetTimeoutRef.current) {
+            clearTimeout(addDialogResetTimeoutRef.current);
+        }
+
+        setAddOpen(false);
+        addDialogResetTimeoutRef.current = setTimeout(() => {
+            form.reset();
+            addDialogResetTimeoutRef.current = null;
+        }, 200);
+    }, [form]);
+
+    useEffect(() => {
+        return () => {
+            if (addDialogResetTimeoutRef.current) {
+                clearTimeout(addDialogResetTimeoutRef.current);
+            }
+        };
+    }, []);
+
     return (
         <>
             <FactorRow
@@ -87,7 +107,14 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
                                 ))}
                             </div>
                         )}
-                        <Button size="sm" onClick={() => { setAddOpen(true); form.reset(); }}>
+                        <Button size="sm" onClick={() => {
+                            if (addDialogResetTimeoutRef.current) {
+                                clearTimeout(addDialogResetTimeoutRef.current);
+                                addDialogResetTimeoutRef.current = null;
+                            }
+                            form.reset();
+                            setAddOpen(true);
+                        }}>
                             <IconPlus size={14} /> Add PGP key
                         </Button>
                     </div>
@@ -95,7 +122,21 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
             </FactorRow>
 
             {/* Add PGP key modal */}
-            <Dialog open={addOpen} onOpenChange={(v) => { if (!v) form.reset(); setAddOpen(v); }}>
+            <Dialog
+                open={addOpen}
+                onOpenChange={(v) => {
+                    if (v) {
+                        if (addDialogResetTimeoutRef.current) {
+                            clearTimeout(addDialogResetTimeoutRef.current);
+                            addDialogResetTimeoutRef.current = null;
+                        }
+                        setAddOpen(true);
+                        return;
+                    }
+
+                    closeAddDialog();
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Add PGP key</DialogTitle>
@@ -126,7 +167,7 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
                                 </FormItem>
                             )} />
                             <div className="flex gap-2 justify-end">
-                                <Button variant="outline" type="button" onClick={() => { setAddOpen(false); form.reset(); }}>Cancel</Button>
+                                <Button variant="outline" type="button" onClick={closeAddDialog}>Cancel</Button>
                                 <Button type="submit" disabled={enable.isPending}>
                                     {enable.isPending ? 'Adding…' : 'Add key'}
                                 </Button>

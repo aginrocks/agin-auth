@@ -32,9 +32,13 @@ type CodeForm = z.infer<typeof codeSchema>;
 export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; fully_enabled: boolean } | null | undefined; onRefetch: () => void }) {
     const [step, setStep] = useState<'idle' | 'name' | 'confirm'>('idle');
     const [setupData, setSetupData] = useState<{ secret: string; qr: string } | null>(null);
+    const [setupDialogOpen, setSetupDialogOpen] = useState(false);
     const [confirmDisable, setConfirmDisable] = useState(false);
+    const [disableDisplayName, setDisableDisplayName] = useState('');
     const [detailsOpen, setDetailsOpen] = useState(false);
     const lastSubmittedCode = useRef<string | null>(null);
+    const setupDialogResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const disableDialogResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isEnabled = totp?.fully_enabled ?? false;
 
@@ -50,8 +54,13 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
 
     const enable = $api.useMutation('post', '/api/settings/factors/totp/enable', {
         onSuccess: (data) => {
+            if (setupDialogResetTimeoutRef.current) {
+                clearTimeout(setupDialogResetTimeoutRef.current);
+                setupDialogResetTimeoutRef.current = null;
+            }
             setSetupData(data);
             setStep('confirm');
+            setSetupDialogOpen(true);
         },
         onError: () => {
             nameForm.setError('display_name', { message: 'Failed to start setup.' });
@@ -60,10 +69,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
 
     const confirmMutation = $api.useMutation('post', '/api/settings/factors/totp/enable/confirm', {
         onSuccess: () => {
-            setStep('idle');
-            setSetupData(null);
-            nameForm.reset();
-            codeForm.reset();
+            closeSetupDialog();
             onRefetch();
         },
         onError: () => {
@@ -72,16 +78,31 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
     });
 
     const disable = $api.useMutation('delete', '/api/settings/factors/totp/disable', {
-        onSuccess: () => { setConfirmDisable(false); onRefetch(); },
+        onSuccess: () => {
+            closeDisableDialog();
+            onRefetch();
+        },
     });
 
+    const resetSetupState = () => {
+        if (setupDialogResetTimeoutRef.current) {
+            clearTimeout(setupDialogResetTimeoutRef.current);
+            setupDialogResetTimeoutRef.current = null;
+        }
+
+        setStep('idle');
+        setSetupData(null);
+        setSetupDialogOpen(false);
+        nameForm.reset();
+        codeForm.reset();
+        lastSubmittedCode.current = null;
+    };
+
     const handleToggle = () => {
-        if (step !== 'idle') {
-            setStep('idle');
-            setSetupData(null);
-            nameForm.reset();
-            codeForm.reset();
-            lastSubmittedCode.current = null;
+        if (step === 'confirm') {
+            closeSetupDialog();
+        } else if (step !== 'idle') {
+            resetSetupState();
         } else if (isEnabled) {
             setDetailsOpen(v => !v);
         } else {
@@ -106,11 +127,38 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
     }, [code, confirmMutation]);
 
     const closeSetupDialog = () => {
-        setStep('idle');
-        setSetupData(null);
-        codeForm.reset();
-        lastSubmittedCode.current = null;
+        if (setupDialogResetTimeoutRef.current) {
+            clearTimeout(setupDialogResetTimeoutRef.current);
+        }
+
+        setSetupDialogOpen(false);
+        setupDialogResetTimeoutRef.current = setTimeout(() => {
+            resetSetupState();
+        }, 200);
     };
+
+    const closeDisableDialog = () => {
+        if (disableDialogResetTimeoutRef.current) {
+            clearTimeout(disableDialogResetTimeoutRef.current);
+        }
+
+        setConfirmDisable(false);
+        disableDialogResetTimeoutRef.current = setTimeout(() => {
+            setDisableDisplayName('');
+            disableDialogResetTimeoutRef.current = null;
+        }, 200);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (setupDialogResetTimeoutRef.current) {
+                clearTimeout(setupDialogResetTimeoutRef.current);
+            }
+            if (disableDialogResetTimeoutRef.current) {
+                clearTimeout(disableDialogResetTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <>
@@ -120,7 +168,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                 description="Time-based one-time passwords from your authenticator app."
                 tag={{ label: isEnabled ? totp?.display_name ?? 'Enabled' : 'Disabled', enabled: isEnabled }}
                 onToggle={handleToggle}
-                open={step !== 'idle' || detailsOpen}
+                open={step === 'name' || detailsOpen}
             >
                 <div className="ml-9 px-5">
                     {isEnabled && (
@@ -130,7 +178,14 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                                     icon={<IconDeviceMobile size={14} className="text-muted-foreground" />}
                                     name={totp?.display_name ?? 'Authenticator'}
                                     subtitle="Active"
-                                    onRemove={() => setConfirmDisable(true)}
+                                    onRemove={() => {
+                                        if (disableDialogResetTimeoutRef.current) {
+                                            clearTimeout(disableDialogResetTimeoutRef.current);
+                                            disableDialogResetTimeoutRef.current = null;
+                                        }
+                                        setDisableDisplayName(totp?.display_name ?? 'Authenticator');
+                                        setConfirmDisable(true);
+                                    }}
                                 />
                             </div>
                         </ExpandForm>
@@ -160,7 +215,21 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                 </div>
             </FactorRow>
 
-            <Dialog open={step === 'confirm' && !!setupData} onOpenChange={(open) => { if (!open) closeSetupDialog(); }}>
+            <Dialog
+                open={step === 'confirm' && !!setupData && setupDialogOpen}
+                onOpenChange={(open) => {
+                    if (open) {
+                        if (setupDialogResetTimeoutRef.current) {
+                            clearTimeout(setupDialogResetTimeoutRef.current);
+                            setupDialogResetTimeoutRef.current = null;
+                        }
+                        setSetupDialogOpen(true);
+                        return;
+                    }
+
+                    closeSetupDialog();
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Set up authenticator</DialogTitle>
@@ -216,19 +285,33 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                 </DialogContent>
             </Dialog>
 
-            <ConfirmDialog open={confirmDisable} onOpenChange={setConfirmDisable}>
+            <ConfirmDialog
+                open={confirmDisable}
+                onOpenChange={(open) => {
+                    if (open) {
+                        if (disableDialogResetTimeoutRef.current) {
+                            clearTimeout(disableDialogResetTimeoutRef.current);
+                            disableDialogResetTimeoutRef.current = null;
+                        }
+                        setConfirmDisable(true);
+                        return;
+                    }
+
+                    closeDisableDialog();
+                }}
+            >
                 <ConfirmDialogContent>
                     <ConfirmDialogHeader>
                         <ConfirmDialogTitle>Remove authenticator</ConfirmDialogTitle>
                         <ConfirmDialogDescription>
-                            This will remove{' '}<span className="font-medium text-foreground">{totp?.display_name}</span>{' '}from your account. You won&apos;t be able to use it for two-factor authentication until you set up a new one.
+                            This will remove{' '}<span className="font-medium text-foreground">{disableDisplayName || totp?.display_name}</span>{' '}from your account. You won&apos;t be able to use it for two-factor authentication until you set up a new one.
                         </ConfirmDialogDescription>
                     </ConfirmDialogHeader>
                     {disable.isError && (
                         <p className="text-xs text-destructive">Failed to remove authenticator.</p>
                     )}
                     <ConfirmDialogFooter>
-                        <Button variant="outline" onClick={() => setConfirmDisable(false)} disabled={disable.isPending}>
+                        <Button variant="outline" onClick={closeDisableDialog} disabled={disable.isPending}>
                             Cancel
                         </Button>
                         <Button variant="destructive" onClick={() => disable.mutate({})} disabled={disable.isPending}>

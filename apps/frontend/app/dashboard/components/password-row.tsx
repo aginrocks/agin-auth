@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
@@ -27,6 +27,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: () => void }) {
     const [open, setOpen] = useState(false);
     const [error, setError] = useState('');
+    const dialogResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const form = useForm<PasswordForm>({
         resolver: zodResolver(passwordSchema),
@@ -35,9 +36,7 @@ export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: (
 
     const change = $api.useMutation('post', '/api/settings/password/change', {
         onSuccess: () => {
-            form.reset();
-            setError('');
-            setOpen(false);
+            closeDialog();
             onRefetch();
         },
         onError: (error) => {
@@ -50,10 +49,48 @@ export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: (
         change.mutate({ body: { current_password: data.current_password ?? '', new_password: data.new_password } });
     };
 
-    const handleClose = (v: boolean) => {
-        if (!v) { form.reset(); setError(''); }
-        setOpen(v);
+    const resetDialogState = () => {
+        if (dialogResetTimeoutRef.current) {
+            clearTimeout(dialogResetTimeoutRef.current);
+            dialogResetTimeoutRef.current = null;
+        }
+
+        setOpen(false);
+        form.reset();
+        setError('');
     };
+
+    const closeDialog = () => {
+        if (dialogResetTimeoutRef.current) {
+            clearTimeout(dialogResetTimeoutRef.current);
+        }
+
+        setOpen(false);
+        dialogResetTimeoutRef.current = setTimeout(() => {
+            resetDialogState();
+        }, 200);
+    };
+
+    const handleOpenChange = (nextOpen: boolean) => {
+        if (nextOpen) {
+            if (dialogResetTimeoutRef.current) {
+                clearTimeout(dialogResetTimeoutRef.current);
+                dialogResetTimeoutRef.current = null;
+            }
+            setOpen(true);
+            return;
+        }
+
+        closeDialog();
+    };
+
+    useEffect(() => {
+        return () => {
+            if (dialogResetTimeoutRef.current) {
+                clearTimeout(dialogResetTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <>
@@ -61,7 +98,7 @@ export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: (
                 <></>
             </FactorRow>
 
-            <Dialog open={open} onOpenChange={handleClose}>
+            <Dialog open={open} onOpenChange={handleOpenChange}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>{isSet ? 'Change password' : 'Set password'}</DialogTitle>
@@ -114,7 +151,7 @@ export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: (
                             />
                             <ErrorMsg msg={error} />
                             <div className="flex gap-2 pt-1 justify-end">
-                                <Button variant="outline" type="button" onClick={() => handleClose(false)}>
+                                <Button variant="outline" type="button" onClick={closeDialog}>
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={change.isPending}>
