@@ -876,6 +876,7 @@ export interface components {
             error: string;
         };
         ChangePasswordBody: {
+            current_password: string;
             new_password: string;
         };
         ChangePasswordResponse: {
@@ -2212,7 +2213,14 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Current password for confirmation */
+                    password: string;
+                };
+            };
+        };
         responses: {
             /** @description Account deleted */
             204: {
