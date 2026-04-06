@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { $api } from '@lib/providers/api';
 import { Button } from '@components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
@@ -13,13 +13,30 @@ export function RecoveryCodesRow({ remaining, onRefetch }: { remaining: number; 
     const [codesModalOpen, setCodesModalOpen] = useState(false);
     const [codes, setCodes] = useState<string[] | null>(null);
     const [error, setError] = useState('');
+    const codesModalResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const enable = $api.useMutation('post', '/api/settings/factors/recovery-codes/enable', {
-        onSuccess: (data) => { setCodes(data.codes); setCodesModalOpen(true); onRefetch(); },
+        onSuccess: (data) => {
+            if (codesModalResetTimeoutRef.current) {
+                clearTimeout(codesModalResetTimeoutRef.current);
+                codesModalResetTimeoutRef.current = null;
+            }
+            setCodes(data.codes);
+            setCodesModalOpen(true);
+            onRefetch();
+        },
         onError: () => { setError('Failed to generate codes.'); },
     });
     const reset = $api.useMutation('post', '/api/settings/factors/recovery-codes/reset', {
-        onSuccess: (data) => { setCodes(data.codes); setCodesModalOpen(true); onRefetch(); },
+        onSuccess: (data) => {
+            if (codesModalResetTimeoutRef.current) {
+                clearTimeout(codesModalResetTimeoutRef.current);
+                codesModalResetTimeoutRef.current = null;
+            }
+            setCodes(data.codes);
+            setCodesModalOpen(true);
+            onRefetch();
+        },
         onError: () => { setError('Failed to regenerate.'); },
     });
 
@@ -29,9 +46,24 @@ export function RecoveryCodesRow({ remaining, onRefetch }: { remaining: number; 
     const handleReset = () => { setError(''); reset.mutate({}); };
 
     const handleCloseModal = () => {
+        if (codesModalResetTimeoutRef.current) {
+            clearTimeout(codesModalResetTimeoutRef.current);
+        }
+
         setCodesModalOpen(false);
-        setCodes(null);
+        codesModalResetTimeoutRef.current = setTimeout(() => {
+            setCodes(null);
+            codesModalResetTimeoutRef.current = null;
+        }, 200);
     };
+
+    useEffect(() => {
+        return () => {
+            if (codesModalResetTimeoutRef.current) {
+                clearTimeout(codesModalResetTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <>
@@ -57,7 +89,21 @@ export function RecoveryCodesRow({ remaining, onRefetch }: { remaining: number; 
             </FactorRow>
 
             {/* Recovery codes modal */}
-            <Dialog open={codesModalOpen} onOpenChange={(v) => { if (!v) handleCloseModal(); }}>
+            <Dialog
+                open={codesModalOpen}
+                onOpenChange={(v) => {
+                    if (v) {
+                        if (codesModalResetTimeoutRef.current) {
+                            clearTimeout(codesModalResetTimeoutRef.current);
+                            codesModalResetTimeoutRef.current = null;
+                        }
+                        setCodesModalOpen(true);
+                        return;
+                    }
+
+                    handleCloseModal();
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Your recovery codes</DialogTitle>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { $api } from '@lib/providers/api';
 import { useWebAuthnRegistration } from '@lib/hooks';
 import { Button } from '@components/ui/button';
@@ -19,6 +19,7 @@ export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string
     const [error, setError] = useState('');
     const [deleteTarget, setDeleteTarget] = useState<{ credential_id: string; display_name: string } | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const addDialogResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const webAuthn = useWebAuthnRegistration();
     const deleteKey = $api.useMutation('delete', '/api/settings/factors/webauthn/delete/{credential_id}', {
@@ -30,8 +31,7 @@ export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string
         e.preventDefault(); setError('');
         try {
             await webAuthn.registerAsync(newName);
-            setNewName('');
-            setAddOpen(false);
+            closeAddDialog();
             onRefetch();
         } catch {
             setError('Failed to register passkey.');
@@ -42,6 +42,27 @@ export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string
         if (!deleteTarget) return;
         deleteKey.mutate({ params: { path: { credential_id: deleteTarget.credential_id } } });
     };
+
+    const closeAddDialog = () => {
+        if (addDialogResetTimeoutRef.current) {
+            clearTimeout(addDialogResetTimeoutRef.current);
+        }
+
+        setAddOpen(false);
+        addDialogResetTimeoutRef.current = setTimeout(() => {
+            setNewName('');
+            setError('');
+            addDialogResetTimeoutRef.current = null;
+        }, 200);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (addDialogResetTimeoutRef.current) {
+                clearTimeout(addDialogResetTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <>
@@ -62,7 +83,15 @@ export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string
                             </div>
                         )}
                         <ErrorMsg msg={error} />
-                        <Button size="sm" onClick={() => { setAddOpen(true); setError(''); }}>
+                        <Button size="sm" onClick={() => {
+                            if (addDialogResetTimeoutRef.current) {
+                                clearTimeout(addDialogResetTimeoutRef.current);
+                                addDialogResetTimeoutRef.current = null;
+                            }
+                            setNewName('');
+                            setError('');
+                            setAddOpen(true);
+                        }}>
                             <IconPlus size={14} /> Add passkey
                         </Button>
                     </div>
@@ -70,7 +99,21 @@ export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string
             </FactorRow>
 
             {/* Add passkey modal */}
-            <Dialog open={addOpen} onOpenChange={(v) => { if (!v) { setNewName(''); setError(''); } setAddOpen(v); }}>
+            <Dialog
+                open={addOpen}
+                onOpenChange={(v) => {
+                    if (v) {
+                        if (addDialogResetTimeoutRef.current) {
+                            clearTimeout(addDialogResetTimeoutRef.current);
+                            addDialogResetTimeoutRef.current = null;
+                        }
+                        setAddOpen(true);
+                        return;
+                    }
+
+                    closeAddDialog();
+                }}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Add passkey</DialogTitle>
@@ -86,7 +129,7 @@ export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string
                         </div>
                         <ErrorMsg msg={error} />
                         <div className="flex gap-2 justify-end">
-                            <Button variant="outline" type="button" onClick={() => { setAddOpen(false); setNewName(''); setError(''); }}>Cancel</Button>
+                            <Button variant="outline" type="button" onClick={closeAddDialog}>Cancel</Button>
                             <Button type="submit">Register</Button>
                         </div>
                     </form>

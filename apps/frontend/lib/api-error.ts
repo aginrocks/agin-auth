@@ -41,16 +41,25 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
     }
 
     if (typeof error === 'string') {
+        if (error.toLowerCase().includes('too many')) {
+            return 'Too many requests. Wait a moment and try again.';
+        }
         return normalizeMessage(error, fallback);
     }
 
     if (error instanceof Error) {
+        if (error.message.toLowerCase().includes('too many')) {
+            return 'Too many requests. Wait a moment and try again.';
+        }
         return normalizeMessage(error.message, fallback);
     }
 
     if (error && typeof error === 'object' && 'error' in error) {
         const message = (error as { error?: unknown }).error;
         if (typeof message === 'string') {
+            if (message.toLowerCase().includes('too many')) {
+                return 'Too many requests. Wait a moment and try again.';
+            }
             return normalizeMessage(message, fallback);
         }
     }
