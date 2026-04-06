@@ -1,11 +1,7 @@
-use argon2::{
-    Argon2,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
 use axum::{Extension, Json};
 use axum_valid::Valid;
-use color_eyre::eyre::{self, ContextCompat};
-use mongodb::bson::doc;
+use color_eyre::eyre;
+use mongodb::bson::{doc, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -14,9 +10,13 @@ use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{AuthFactors, PartialUser, PasswordFactor, User},
-    routes::api::CreateSuccess,
+    database::{AuthFactors, PasswordFactor, User},
+    routes::api::{
+        CreateSuccess,
+        confirm_email::{EmailConfirmationToken, send_confirmation_email},
+    },
     state::AppState,
+    utils::hash_password,
     validators::username_validator,
 };
 
@@ -51,12 +51,6 @@ pub struct BadRequestError {
     error: String,
 }
 
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({"success": true}))]
-pub struct RegisterSuccess {
-    success: bool,
-}
-
 /// Register
 #[utoipa::path(
     method(post),
@@ -88,42 +82,66 @@ async fn register(
         )));
     }
 
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-
-    let hashed_password = argon2
-        .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|_| eyre::eyre!("Failed to compute hash"))?;
-
+    let hashed_password = hash_password(&body.password)?;
+    let user_id = ObjectId::new();
     let uuid = Uuid::new_v4();
 
-    let user = PartialUser {
+    let user = User {
+        id: user_id,
         uuid,
         first_name: body.first_name,
         last_name: body.last_name,
         display_name: body.display_name,
         preferred_username: body.preferred_username,
-        email: body.email,
+        email: body.email.clone(),
+        email_confirmed: false,
         auth_factors: AuthFactors {
             password: PasswordFactor {
-                password_hash: Some(hashed_password.to_string()),
+                password_hash: Some(hashed_password),
             },
             ..Default::default()
         },
         groups: vec![],
     };
 
-    let inserted = state
+    state
         .database
-        .collection::<PartialUser>("users")
+        .collection::<User>("users")
         .insert_one(user)
         .await?;
 
-    let id = inserted
-        .inserted_id
-        .as_object_id()
-        .wrap_err("Failed to fetch project ID")?
-        .to_string();
+    if let Err(error) = send_confirmation_email(&state, user_id, &body.email).await {
+        if let Err(cleanup_error) = state
+            .database
+            .collection::<EmailConfirmationToken>("email_confirmation_tokens")
+            .delete_many(doc! { "user_id": user_id })
+            .await
+        {
+            tracing::warn!(
+                error = ?cleanup_error,
+                %user_id,
+                "Failed to clean up confirmation tokens after registration error"
+            );
+        }
 
-    Ok(Json(CreateSuccess { success: true, id }))
+        if let Err(cleanup_error) = state
+            .database
+            .collection::<User>("users")
+            .delete_one(doc! { "_id": user_id })
+            .await
+        {
+            tracing::error!(
+                error = ?cleanup_error,
+                %user_id,
+                "Failed to roll back user after registration error"
+            );
+        }
+
+        return Err(error);
+    }
+
+    Ok(Json(CreateSuccess {
+        success: true,
+        id: user_id.to_string(),
+    }))
 }

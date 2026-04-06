@@ -6,6 +6,7 @@ import { LinkComponent } from '@components/ui/link';
 import z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { $api } from '@lib/providers/api';
+import { getApiErrorMessage } from '@lib/api-error';
 import { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
@@ -54,33 +55,36 @@ export default function Page() {
         },
     });
 
-    const register = $api.useMutation('post', '/api/register', {
-        onSuccess: () => {
-            setStep('success');
-            setError(null);
-        },
-        onError: (e) => {
-            setError(e?.error || 'Registration failed.');
-        },
-    });
+    const register = $api.useMutation('post', '/api/register');
 
     const handleNext = useCallback(async () => {
         const valid = await form.trigger(['first_name', 'last_name', 'display_name']);
         if (valid) setStep('credentials');
     }, []);
 
-    const handleSubmit = form.handleSubmit((data) => {
+    const handleSubmit = form.handleSubmit(async (data) => {
         setError(null);
-        register.mutate({
-            body: {
-                first_name: data.first_name,
-                last_name: data.last_name,
-                display_name: data.display_name,
-                preferred_username: data.preferred_username,
-                email: data.email,
-                password: data.password,
-            },
-        });
+        try {
+            const response = await register.mutateAsync({
+                body: {
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    display_name: data.display_name,
+                    preferred_username: data.preferred_username,
+                    email: data.email,
+                    password: data.password,
+                },
+            });
+
+            if (!response?.success) {
+                setError('Registration failed.');
+                return;
+            }
+
+            setStep('success');
+        } catch (error) {
+            setError(getApiErrorMessage(error, 'Registration failed.'));
+        }
     });
 
     return (

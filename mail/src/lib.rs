@@ -36,7 +36,7 @@ impl MailService {
         Self {
             config,
             app_name,
-            public_url,
+            public_url: public_url.trim_end_matches('/').to_string(),
         }
     }
 
@@ -68,9 +68,8 @@ impl MailService {
             .await
     }
 
-    /// Not yet implemented — will be called once email confirmation flow is ready.
     pub async fn send_email_confirmation(&self, to: &str, token: &str) -> Result<()> {
-        let confirm_url = format!("{}/confirm-email?token={token}", self.public_url);
+        let confirm_url = format!("{}/api/confirm-email?token={token}", self.public_url);
         let html = templates::email_confirmation(&confirm_url);
         self.send(
             to,
@@ -80,7 +79,6 @@ impl MailService {
         .await
     }
 
-    /// Not yet implemented — will be called once login notification flow is ready (after DB migration).
     pub async fn send_login_notification(&self, to: &str, ip: &str) -> Result<()> {
         let html = templates::login_notification(ip);
         self.send(

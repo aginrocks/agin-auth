@@ -13,7 +13,7 @@ use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::User,
+    database::{PGPFactor, User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
     state::AppState,
 };
@@ -60,18 +60,38 @@ async fn enable_pgp(
     let (public_key, _) = SignedPublicKey::from_string(&body.public_key)
         .map_err(|_| AxumError::bad_request(eyre::eyre!("Invalid public key")))?;
 
+    let fingerprint = public_key.fingerprint().to_string();
+
+    // Check for duplicate fingerprint
+    let user = get_user_by_id(&state.database, &user_id)
+        .await?
+        .ok_or_else(|| AxumError::unauthorized(eyre::eyre!("User not found")))?;
+
+    if user
+        .auth_factors
+        .pgp
+        .iter()
+        .any(|k| k.fingerprint == fingerprint)
+    {
+        return Err(AxumError::bad_request(eyre::eyre!(
+            "This PGP key is already added"
+        )));
+    }
+
+    let factor = PGPFactor {
+        public_key: public_key.to_armored_string(ArmorOptions::default())?,
+        fingerprint,
+        display_name: body.display_name,
+    };
+
     state
         .database
         .collection::<User>("users")
-        .find_one_and_update(
+        .update_one(
             doc! { "_id": *user_id },
             doc! {
-                "$set": {
-                    "auth_factors.pgp": {
-                        "public_key": public_key.to_armored_string(ArmorOptions::default())?,
-                        "fingerprint": public_key.fingerprint().to_string(),
-                        "display_name": body.display_name,
-                    }
+                "$push": {
+                    "auth_factors.pgp": mongodb::bson::to_bson(&factor)?
                 }
             },
         )

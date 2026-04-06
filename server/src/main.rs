@@ -6,6 +6,7 @@ mod factors;
 mod init;
 mod middlewares;
 mod mongo_id;
+mod oidc;
 mod routes;
 mod settings;
 mod state;
@@ -23,6 +24,7 @@ use utoipa::OpenApi;
 use crate::{
     database::{init_database, init_session_store},
     init::{init_axum, init_listener, init_tracing},
+    oidc::init_oidc_keys,
     settings::Settings,
     state::AppState,
     webauthn::init_webauthn,
@@ -59,11 +61,14 @@ async fn main() -> Result<()> {
         ))
     });
 
+    let oidc_keys = init_oidc_keys(&settings.oidc.signing_key_file)?;
+
     let app_state = AppState {
         database,
         settings: settings.clone(),
         webauthn,
         mail_service,
+        oidc_keys,
     };
 
     let session_layer = init_session_store(&settings).await?;
@@ -78,9 +83,12 @@ async fn main() -> Result<()> {
         settings.general.public_url
     );
 
-    axum::serve(listener, app.into_make_service())
-        .await
-        .wrap_err("failed to run server")?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .wrap_err("failed to run server")?;
 
     Ok(())
 }

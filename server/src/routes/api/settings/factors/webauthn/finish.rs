@@ -1,4 +1,5 @@
 use axum::{Extension, Json};
+use base64::Engine;
 use color_eyre::eyre::{self, Context, ContextCompat};
 use mongodb::bson::doc;
 use serde::Serialize;
@@ -58,6 +59,8 @@ async fn webauthn_finish_setup(
         .wrap_err("Missing display name")?;
 
     let serialized_key = serde_json::to_string(&sk).wrap_err("Failed to serialize passkey")?;
+    let credential_id =
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(sk.cred_id().as_ref());
 
     state
         .database
@@ -67,6 +70,7 @@ async fn webauthn_finish_setup(
             doc! {
                 "$push": {
                     "auth_factors.webauthn": {
+                        "credential_id": credential_id,
                         "serialized_key": serialized_key,
                         "display_name": display_name,
                     }

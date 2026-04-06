@@ -130,7 +130,9 @@ async fn confirm_reset(
         .await?;
 
     let Some(token_doc) = token_doc else {
-        return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
+        return Err(AxumError::bad_request(eyre::eyre!(
+            "Invalid or expired token"
+        )));
     };
 
     if Utc::now() > token_doc.expires_at {
@@ -139,7 +141,9 @@ async fn confirm_reset(
             .collection::<PasswordResetToken>("password_reset_tokens")
             .delete_one(doc! { "token_hash": &token_hash })
             .await?;
-        return Err(AxumError::bad_request(eyre::eyre!("Invalid or expired token")));
+        return Err(AxumError::bad_request(eyre::eyre!(
+            "Invalid or expired token"
+        )));
     }
 
     let new_hash = hash_password(&body.new_password)?;

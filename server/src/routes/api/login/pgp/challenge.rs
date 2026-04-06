@@ -114,11 +114,9 @@ async fn respond_to_pgp_challenge(
 
     let user = user.ok_or_else(|| AxumError::unauthorized(eyre::eyre!("No user")))?;
 
-    let pgp_factor = user
-        .auth_factors
-        .pgp
-        .as_ref()
-        .ok_or_else(|| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
+    if user.auth_factors.pgp.is_empty() {
+        return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
+    }
 
     let (parsed, _) = Any::from_string(&body.signature)
         .map_err(|_| AxumError::bad_request(eyre::eyre!("Invalid signature format")))?;
@@ -134,14 +132,24 @@ async fn respond_to_pgp_challenge(
         return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
     }
 
-    let (public_key, _) =
-        SignedPublicKey::from_string(&pgp_factor.public_key)
-            .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
+    // Try verifying against all registered PGP keys
+    let mut verified = false;
+    for pgp_factor in &user.auth_factors.pgp {
+        if let Ok((public_key, _)) = SignedPublicKey::from_string(&pgp_factor.public_key)
+            && msg.verify(&public_key).is_ok()
+        {
+            verified = true;
+            break;
+        }
+    }
 
-    msg.verify(&public_key)
-        .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid signature")))?;
+    if !verified {
+        return Err(AxumError::unauthorized(eyre::eyre!("Invalid signature")));
+    }
 
-    session.remove::<PgpChallengeConfig>("login::pgp_challenge").await?;
+    session
+        .remove::<PgpChallengeConfig>("login::pgp_challenge")
+        .await?;
 
     session.insert("user_id", user.id).await?;
 

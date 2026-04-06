@@ -1,4 +1,7 @@
 //! Types related to attestation (Registration)
+//!
+//! This file contains types copied from the `webauthn-rs` crate.
+#![allow(dead_code, unused_imports, clippy::enum_variant_names)]
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -114,6 +117,7 @@ pub struct RegisterPublicKeyCredential {
 #[derive(Debug, Serialize, Clone, Copy, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[repr(u8)]
+#[allow(clippy::enum_variant_names)]
 pub enum CredentialProtectionPolicy {
     /// This reflects "FIDO_2_0" semantics. In this configuration, performing
     /// some form of user verification is optional with or without credentialID
@@ -276,6 +280,7 @@ pub struct RegistrationExtensionsClientOutputs {
 
 /// The result state of an extension as returned from the authenticator.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[allow(dead_code)]
 pub enum ExtnState<T>
 where
     T: Clone + std::fmt::Debug + ToSchema,
@@ -296,6 +301,7 @@ where
 
 /// The set of extensions that were registered by this credential.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[allow(dead_code)]
 pub struct RegisteredExtensions {
     // ⚠️  It's critical we place serde default here so that we
     // can deserialise in the future as we add new types!
@@ -315,6 +321,7 @@ pub struct RegisteredExtensions {
 
 /// The set of extensions that were provided by the client during authentication
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[allow(dead_code)]
 pub struct AuthenticationExtensions {}
 
 // Types that define options as to how an authenticator may interact with
@@ -599,6 +606,7 @@ pub struct AllowCredentials {
 /// The data collected and hashed in the operation.
 /// <https://www.w3.org/TR/webauthn-2/#dictdef-collectedclientdata>
 #[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
+#[allow(dead_code)]
 pub struct CollectedClientData {
     /// The credential type
     #[serde(rename = "type")]
@@ -623,6 +631,7 @@ pub struct CollectedClientData {
 
 /// Token binding
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
+#[allow(dead_code)]
 pub struct TokenBinding {
     /// status
     pub status: String,

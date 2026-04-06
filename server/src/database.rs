@@ -4,6 +4,7 @@ use mongodb::{
     bson::{self, Bson, doc, oid::ObjectId},
 };
 use partial_struct::Partial;
+use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use tower_sessions::{
     Expiry, SessionManagerLayer,
@@ -80,6 +81,7 @@ impl TOTPFactor {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct WebAuthnFactor {
+    pub credential_id: String,
     pub serialized_key: String,
     pub display_name: String,
 }
@@ -93,6 +95,7 @@ impl From<WebAuthnFactor> for Bson {
 impl WebAuthnFactor {
     pub fn to_public(&self) -> PublicWebAuthnFactor {
         PublicWebAuthnFactor {
+            credential_id: self.credential_id.clone(),
             display_name: self.display_name.clone(),
         }
     }
@@ -122,6 +125,12 @@ pub struct PasswordFactor {
     pub password_hash: Option<String>,
 }
 
+impl From<PGPFactor> for Bson {
+    fn from(value: PGPFactor) -> Self {
+        bson::to_bson(&value).unwrap()
+    }
+}
+
 impl PGPFactor {
     pub fn to_public(&self) -> PublicPGPFactor {
         PublicPGPFactor {
@@ -137,12 +146,31 @@ pub struct RecentFactors {
     pub second_factor: Option<SecondFactor>,
 }
 
+/// Accepts both a single PGPFactor object (legacy) and a Vec<PGPFactor> (new format).
+fn deserialize_pgp_factors<'de, D>(deserializer: D) -> Result<Vec<PGPFactor>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum PgpField {
+        Vec(Vec<PGPFactor>),
+        Single(PGPFactor),
+    }
+
+    match PgpField::deserialize(deserializer)? {
+        PgpField::Vec(v) => Ok(v),
+        PgpField::Single(f) => Ok(vec![f]),
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone, Default)]
 pub struct AuthFactors {
     pub totp: Option<TOTPFactor>,
     pub webauthn: Vec<WebAuthnFactor>,
     pub recovery_codes: Vec<RecoveryCodeFactor>,
-    pub pgp: Option<PGPFactor>,
+    #[serde(deserialize_with = "deserialize_pgp_factors", default)]
+    pub pgp: Vec<PGPFactor>,
     pub password: PasswordFactor,
     pub recent: RecentFactors,
 }
@@ -162,7 +190,7 @@ impl AuthFactors {
             recovery_codes: PublicRecoveryCodeFactor {
                 remaining_codes: remaining_recovery_codes,
             },
-            pgp: self.pgp.iter().map(|factor| factor.to_public()).collect(),
+            pgp: self.pgp.iter().map(|f| f.to_public()).collect(),
             password: PublicPasswordFactor {
                 is_set: self.password.password_hash.is_some(),
             },
@@ -184,6 +212,7 @@ pub struct PublicPasswordFactor {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct PublicWebAuthnFactor {
+    pub credential_id: String,
     pub display_name: String,
 }
 
@@ -259,6 +288,8 @@ database_object!(User {
     display_name: String,
     preferred_username: String,
     email: String,
+    #[serde(default)]
+    email_confirmed: bool,
     auth_factors: AuthFactors,
 
     #[serde(with = "vec_oid_to_vec_string")]
@@ -335,14 +366,6 @@ impl Application {
         }
     }
 }
-
-database_object!(Group {
-    #[serde(rename = "_id", with = "object_id_as_string_required")]
-    #[schema(value_type = String)]
-    id: ObjectId,
-    name: String,
-    is_admin: bool,
-});
 
 pub async fn get_user(
     database: &Database,

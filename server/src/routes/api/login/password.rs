@@ -1,8 +1,5 @@
-use argon2::{
-    Argon2, PasswordHash, PasswordVerifier,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
 use axum::{Extension, Json};
+use axum_client_ip::ClientIp;
 use color_eyre::eyre;
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
@@ -15,6 +12,7 @@ use crate::{
     database::{FirstFactor, get_second_factors, get_user, set_recent_factor},
     routes::api::AuthState,
     state::AppState,
+    utils::{hash_password, verify_password},
 };
 
 use super::SuccessfulLoginResponse;
@@ -36,19 +34,6 @@ pub struct InvalidUserOrPass {
     error: String,
 }
 
-trait A {
-    type T;
-}
-
-#[derive(ToSchema)]
-struct B {}
-
-impl A for B {
-    type T = InvalidUserOrPass;
-}
-
-type C = <B as A>::T;
-
 /// Log in with password
 ///
 /// If user is not found or the password isn't enabled for the user returns the same response as if the password was incorrect.
@@ -64,6 +49,7 @@ type C = <B as A>::T;
 async fn login_with_password(
     Extension(state): Extension<AppState>,
     session: Session,
+    ClientIp(client_ip): ClientIp,
     Json(body): Json<LoginBody>,
 ) -> AxumResult<Json<SuccessfulLoginResponse>> {
     let user = get_user(&state.database, &body.username).await?;
@@ -78,12 +64,7 @@ async fn login_with_password(
             .password_hash
             .is_none()
     {
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-
-        argon2
-            .hash_password(body.password.as_bytes(), &salt)
-            .map_err(|_| eyre::eyre!("Failed to compute hash"))?;
+        let _ = hash_password(&body.password);
 
         return Err(AxumError::unauthorized(eyre::eyre!(
             "Invalid username or password"
@@ -94,12 +75,7 @@ async fn login_with_password(
 
     let password_hash = &user.clone().auth_factors.password.password_hash.unwrap();
 
-    let parsed_hash =
-        PasswordHash::new(password_hash).map_err(|_| eyre::eyre!("Failed to compute hash"))?;
-    let argon2 = Argon2::default();
-
-    argon2
-        .verify_password(body.password.as_bytes(), &parsed_hash)
+    verify_password(&body.password, password_hash)
         .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid username or password")))?;
 
     session.insert("user_id", user.id).await?;
@@ -110,6 +86,17 @@ async fn login_with_password(
         session
             .insert("auth_state", AuthState::Authenticated)
             .await?;
+
+        if let Some(mail) = &state.mail_service {
+            let ip = client_ip.to_string();
+            let email = user.email.clone();
+            let mail = mail.clone();
+            tokio::spawn(async move {
+                if let Err(e) = mail.send_login_notification(&email, &ip).await {
+                    tracing::warn!(error = ?e, "Failed to send login notification");
+                }
+            });
+        }
 
         return Ok(Json(SuccessfulLoginResponse {
             two_factor_required: false,

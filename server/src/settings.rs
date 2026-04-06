@@ -45,6 +45,9 @@ pub struct General {
     pub public_url: Uri,
 
     pub app_name: String,
+
+    #[serde(default)]
+    pub trust_proxy: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -73,6 +76,19 @@ pub struct WebAuthn {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Oidc {
+    pub signing_key_file: String,
+}
+
+impl Oidc {
+    pub fn default() -> Self {
+        Self {
+            signing_key_file: "oidc-signing-key.pem".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings {
     pub general: General,
     pub db: Db,
@@ -80,6 +96,8 @@ pub struct Settings {
     pub webauthn: WebAuthn,
     #[serde(default)]
     pub mail: Option<mail::MailConfig>,
+    #[serde(default = "Oidc::default")]
+    pub oidc: Oidc,
 }
 
 impl Settings {
@@ -128,11 +146,14 @@ impl Settings {
 
         if add_suggestion && !std::path::Path::new("config.toml").exists() {
             let example_settings = Settings::example();
-            let example_settings = toml::to_string_pretty(&example_settings)?;
+            let example_toml = toml::to_string_pretty(&example_settings)?;
 
-            std::fs::write("config.toml", example_settings)?;
+            std::fs::write("config.toml", &example_toml)?;
 
-            res = res.suggestion("An example configuration file has been created at `config.toml` in the current directory.");
+            // Generate OIDC signing key alongside the example config
+            crate::oidc::generate_oidc_key_file(&example_settings.oidc.signing_key_file)?;
+
+            res = res.suggestion("An example configuration file has been created at `config.toml` in the current directory. An OIDC signing key has also been generated.");
         }
 
         res
@@ -146,6 +167,7 @@ impl Settings {
                     .parse()
                     .expect("hardcoded uri should parse"),
                 app_name: "Agin Auth".to_string(),
+                trust_proxy: false,
             },
             db: Db {
                 connection_string: "mongodb://localhost:27017".to_string(),
@@ -164,6 +186,7 @@ impl Settings {
                 allow_subdomains: Some(false),
             },
             mail: None,
+            oidc: Oidc::default(),
         }
     }
 }

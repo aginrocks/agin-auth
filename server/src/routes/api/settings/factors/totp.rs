@@ -1,4 +1,4 @@
-// mod disable;
+mod disable;
 mod enable;
 
 use base32::{Alphabet, decode};
@@ -15,8 +15,9 @@ use crate::{
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().nest("/enable", enable::routes())
-    // .nest("/disable", disable::routes())
+    OpenApiRouter::new()
+        .nest("/enable", enable::routes())
+        .nest("/disable", disable::routes())
 }
 
 pub fn create_totp_instance(

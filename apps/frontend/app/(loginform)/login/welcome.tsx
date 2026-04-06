@@ -27,7 +27,7 @@ export function Welcome() {
         },
         onError: (e) => {
             form.setError('username', {
-                message: e?.error || 'Login failed.',
+                message: (e as { error?: string })?.error || 'Login failed.',
             });
         },
     });

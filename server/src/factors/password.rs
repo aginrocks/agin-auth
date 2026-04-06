@@ -29,9 +29,11 @@ impl Factor for PasswordFactor {
     // Enable Docs here
     async fn enable(
         &self,
-        args: Self::EnableRequest,
+        _args: Self::EnableRequest,
     ) -> Result<EnableResponse<Self::EnableResponse>, FactorEnableError> {
-        Err(FactorEnableError::Other(FactorError::Other(color_eyre::eyre::eyre!("Not implemented"))))
+        Err(FactorEnableError::Other(FactorError::Other(
+            color_eyre::eyre::eyre!("Not implemented"),
+        )))
     }
 
     type DisableRequest = NoData;
@@ -40,9 +42,11 @@ impl Factor for PasswordFactor {
     // Disable Docs here
     async fn disable(
         &self,
-        args: Self::DisableRequest,
+        _args: Self::DisableRequest,
     ) -> Result<Self::DisableResponse, FactorDisableError> {
-        Err(FactorDisableError::Other(FactorError::Other(color_eyre::eyre::eyre!("Not implemented"))))
+        Err(FactorDisableError::Other(FactorError::Other(
+            color_eyre::eyre::eyre!("Not implemented"),
+        )))
     }
 
     type AuthenticateRequest = NoData;
@@ -51,8 +55,10 @@ impl Factor for PasswordFactor {
     /// Authenticate Docs here
     async fn authenticate(
         &self,
-        args: Self::AuthenticateRequest,
+        _args: Self::AuthenticateRequest,
     ) -> Result<AuthenticateResponse<Self::AuthenticateResponse>, FactorError> {
-        Err(FactorError::Other(color_eyre::eyre::eyre!("Not implemented")))
+        Err(FactorError::Other(color_eyre::eyre::eyre!(
+            "Not implemented"
+        )))
     }
 }

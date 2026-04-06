@@ -11,9 +11,7 @@ use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 
 use crate::{
-    database::SecondFactor,
-    middlewares::require_auth::require_first_factor,
-    state::AppState,
+    database::SecondFactor, middlewares::require_auth::require_first_factor, state::AppState,
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {

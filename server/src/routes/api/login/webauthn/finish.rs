@@ -54,7 +54,9 @@ async fn webauthn_finish_login(
     let auth_result = state
         .webauthn
         .finish_passkey_authentication(&auth, &auth_state)
-        .map_err(|e| AxumError::bad_request(eyre::eyre!("WebAuthn registration failed: {}", e)))?;
+        .map_err(|e| {
+            AxumError::bad_request(eyre::eyre!("WebAuthn authentication failed: {}", e))
+        })?;
 
     update_webauthn_credentials(&state, &user, &auth_result).await?;
 
