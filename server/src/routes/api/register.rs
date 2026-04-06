@@ -58,7 +58,6 @@ pub struct BadRequestError {
     responses(
         (status = OK, description = "Success", body = CreateSuccess, content_type = "application/json"),
         (status = BAD_REQUEST, description = "BadRequest", body = BadRequestError, content_type = "application/json"),
-        (status = SERVICE_UNAVAILABLE, description = "Confirmation email unavailable", body = BadRequestError, content_type = "application/json"),
     ),
     tag = "Register"
 )]
@@ -88,7 +87,7 @@ async fn register(
     let uuid = Uuid::new_v4();
 
     let user = User {
-        id: user_id.clone(),
+        id: user_id,
         uuid,
         first_name: body.first_name,
         last_name: body.last_name,
@@ -111,11 +110,11 @@ async fn register(
         .insert_one(user)
         .await?;
 
-    if let Err(error) = send_confirmation_email(&state, user_id.clone(), &body.email).await {
+    if let Err(error) = send_confirmation_email(&state, user_id, &body.email).await {
         if let Err(cleanup_error) = state
             .database
             .collection::<EmailConfirmationToken>("email_confirmation_tokens")
-            .delete_many(doc! { "user_id": user_id.clone() })
+            .delete_many(doc! { "user_id": user_id })
             .await
         {
             tracing::warn!(
@@ -128,7 +127,7 @@ async fn register(
         if let Err(cleanup_error) = state
             .database
             .collection::<User>("users")
-            .delete_one(doc! { "_id": user_id.clone() })
+            .delete_one(doc! { "_id": user_id })
             .await
         {
             tracing::error!(
