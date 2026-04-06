@@ -1,15 +1,17 @@
 use std::ops::Deref;
 
-use axum::{extract::Request, middleware::Next, response::Response};
+use axum::{Extension, extract::Request, http::header, middleware::Next, response::Response};
 use color_eyre::{eyre, eyre::Result};
-use mongodb::bson::{doc, oid::ObjectId};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
+    database::record_session,
     routes::api::AuthState,
+    state::AppState,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -36,8 +38,29 @@ async fn get_auth_state(session: &Session) -> Result<(ObjectId, AuthState)> {
     Ok((user_id, auth_state))
 }
 
+fn extract_client_ip(request: &Request, trust_proxy: bool) -> String {
+    if trust_proxy {
+        return request
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.split(',').next_back())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+    }
+
+    request
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|info| info.0.ip().to_string())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
 /// Middleware that ensures the user is authenticated
 pub async fn require_auth(
+    Extension(state): Extension<AppState>,
     session: Session,
     mut request: Request,
     next: Next,
@@ -48,6 +71,24 @@ pub async fn require_auth(
 
     if auth_state != AuthState::Authenticated {
         return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
+    }
+
+    // Record/update session in MongoDB
+    if let Some(session_id) = session.id() {
+        let ip = extract_client_ip(&request, state.settings.general.trust_proxy);
+        let user_agent = request
+            .headers()
+            .get(header::USER_AGENT)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let db = state.database.clone();
+        let sid = session_id.to_string();
+        let uid = user_id;
+        if let Err(e) = record_session(&db, &sid, &uid, &ip, &user_agent).await {
+            tracing::warn!(error = ?e, "Failed to record session");
+        }
     }
 
     request.extensions_mut().insert(UserId(user_id));

@@ -63,15 +63,17 @@ async fn main() -> Result<()> {
 
     let oidc_keys = init_oidc_keys(&settings.oidc.signing_key_file)?;
 
+    let (session_layer, redis_pool) = init_session_store(&settings).await?;
+
     let app_state = AppState {
         database,
         settings: settings.clone(),
         webauthn,
         mail_service,
         oidc_keys,
+        redis_pool,
     };
 
-    let session_layer = init_session_store(&settings).await?;
     let app = init_axum(app_state, session_layer).await?;
     let listener = init_listener(&settings).await?;
 
