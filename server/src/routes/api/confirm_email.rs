@@ -10,7 +10,7 @@ use utoipa::IntoParams;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
-    axum_error::AxumResult,
+    axum_error::{AxumError, AxumResult},
     database::User,
     state::AppState,
     utils::{generate_reset_token, hash_token},
@@ -33,7 +33,9 @@ pub async fn send_confirmation_email(
     email: &str,
 ) -> AxumResult<()> {
     let Some(mail) = &state.mail_service else {
-        return Ok(());
+        return Err(AxumError::service_unavailable(color_eyre::eyre::eyre!(
+            "Confirmation email service is unavailable"
+        )));
     };
 
     let token = generate_reset_token();
@@ -50,13 +52,12 @@ pub async fn send_confirmation_email(
         })
         .await?;
 
-    let mail = mail.clone();
-    let email = email.to_owned();
-    tokio::spawn(async move {
-        if let Err(e) = mail.send_email_confirmation(&email, &token).await {
-            tracing::warn!(error = ?e, "Failed to send confirmation email");
-        }
-    });
+    if let Err(error) = mail.send_email_confirmation(email, &token).await {
+        tracing::warn!(error = ?error, %user_id, "Failed to send confirmation email");
+        return Err(AxumError::service_unavailable(color_eyre::eyre::eyre!(
+            "Confirmation email service is unavailable"
+        )));
+    }
 
     Ok(())
 }

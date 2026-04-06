@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
 import { $api } from '@lib/providers/api';
+import { getApiErrorMessage } from '@lib/api-error';
 import { Button } from '@components/ui/button';
 import { Label } from '@components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
@@ -39,8 +40,8 @@ export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: (
             setOpen(false);
             onRefetch();
         },
-        onError: () => {
-            setError('Incorrect current password or invalid new password.');
+        onError: (error) => {
+            setError(getApiErrorMessage(error, 'Could not update the password.'));
         },
     });
 

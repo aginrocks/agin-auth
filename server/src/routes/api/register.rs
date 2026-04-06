@@ -1,7 +1,7 @@
 use axum::{Extension, Json};
 use axum_valid::Valid;
-use color_eyre::eyre::{self, ContextCompat};
-use mongodb::bson::doc;
+use color_eyre::eyre;
+use mongodb::bson::{doc, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -10,8 +10,11 @@ use validator::Validate;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
-    database::{AuthFactors, PartialUser, PasswordFactor, User},
-    routes::api::{CreateSuccess, confirm_email::send_confirmation_email},
+    database::{AuthFactors, PasswordFactor, User},
+    routes::api::{
+        CreateSuccess,
+        confirm_email::{EmailConfirmationToken, send_confirmation_email},
+    },
     state::AppState,
     utils::hash_password,
     validators::username_validator,
@@ -55,6 +58,7 @@ pub struct BadRequestError {
     responses(
         (status = OK, description = "Success", body = CreateSuccess, content_type = "application/json"),
         (status = BAD_REQUEST, description = "BadRequest", body = BadRequestError, content_type = "application/json"),
+        (status = SERVICE_UNAVAILABLE, description = "Confirmation email unavailable", body = BadRequestError, content_type = "application/json"),
     ),
     tag = "Register"
 )]
@@ -80,9 +84,11 @@ async fn register(
     }
 
     let hashed_password = hash_password(&body.password)?;
+    let user_id = ObjectId::new();
     let uuid = Uuid::new_v4();
 
-    let user = PartialUser {
+    let user = User {
+        id: user_id.clone(),
         uuid,
         first_name: body.first_name,
         last_name: body.last_name,
@@ -99,21 +105,44 @@ async fn register(
         groups: vec![],
     };
 
-    let inserted = state
+    state
         .database
-        .collection::<PartialUser>("users")
+        .collection::<User>("users")
         .insert_one(user)
         .await?;
 
-    let id = inserted
-        .inserted_id
-        .as_object_id()
-        .wrap_err("Failed to fetch project ID")?;
+    if let Err(error) = send_confirmation_email(&state, user_id.clone(), &body.email).await {
+        if let Err(cleanup_error) = state
+            .database
+            .collection::<EmailConfirmationToken>("email_confirmation_tokens")
+            .delete_many(doc! { "user_id": user_id.clone() })
+            .await
+        {
+            tracing::warn!(
+                error = ?cleanup_error,
+                %user_id,
+                "Failed to clean up confirmation tokens after registration error"
+            );
+        }
 
-    send_confirmation_email(&state, id, &body.email).await?;
+        if let Err(cleanup_error) = state
+            .database
+            .collection::<User>("users")
+            .delete_one(doc! { "_id": user_id.clone() })
+            .await
+        {
+            tracing::error!(
+                error = ?cleanup_error,
+                %user_id,
+                "Failed to roll back user after registration error"
+            );
+        }
+
+        return Err(error);
+    }
 
     Ok(Json(CreateSuccess {
         success: true,
-        id: id.to_string(),
+        id: user_id.to_string(),
     }))
 }

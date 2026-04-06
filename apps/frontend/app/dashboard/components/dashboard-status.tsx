@@ -17,7 +17,15 @@ export function DashboardSkeleton() {
 export function DashboardError() {
     return (
         <div className="rounded-2xl border border-border bg-card px-5 py-4">
-            <p className="text-sm text-destructive">Failed to load — make sure you are signed in.</p>
+            <p className="text-sm text-destructive">Failed to load - make sure you are signed in.</p>
+        </div>
+    );
+}
+
+export function DashboardWarning({ message }: { message: string }) {
+    return (
+        <div className="rounded-2xl border border-border bg-card px-5 py-4">
+            <p className="text-sm text-muted-foreground">{message}</p>
         </div>
     );
 }
