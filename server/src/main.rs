@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
         ))
     });
 
-    let oidc_keys = init_oidc_keys()?;
+    let oidc_keys = init_oidc_keys(&settings.oidc.signing_key_file)?;
 
     let app_state = AppState {
         database,

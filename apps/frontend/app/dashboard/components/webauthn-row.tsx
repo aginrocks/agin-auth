@@ -6,82 +6,112 @@ import { useWebAuthnRegistration } from '@lib/hooks';
 import { Button } from '@components/ui/button';
 import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
-import { IconFingerprint, IconKey, IconTrash } from '@tabler/icons-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@components/ui/dialog';
+import { IconFingerprint, IconPlus } from '@tabler/icons-react';
 import { FactorRow } from './factor-row';
 import { ErrorMsg, ExpandForm } from './helpers';
+import { FactorKeyItem } from './factor-key-item';
 
-export function WebAuthnRow({ keys, onRefetch }: { keys: { display_name: string }[]; onRefetch: () => void }) {
-    const [adding, setAdding] = useState(false);
+export function WebAuthnRow({ keys, onRefetch }: { keys: { credential_id: string; display_name: string }[]; onRefetch: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [addOpen, setAddOpen] = useState(false);
     const [newName, setNewName] = useState('');
     const [error, setError] = useState('');
-    const [deletingKey, setDeletingKey] = useState<string | null>(null);
-    const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ credential_id: string; display_name: string } | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const webAuthn = useWebAuthnRegistration();
-    const deleteKey = $api.useMutation('delete', '/api/settings/factors/webauthn/delete/{display_name}');
+    const deleteKey = $api.useMutation('delete', '/api/settings/factors/webauthn/delete/{credential_id}', {
+        onSuccess: () => { setDeleteDialogOpen(false); onRefetch(); },
+        onError: () => setError('Failed to delete passkey.'),
+    });
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault(); setError('');
-        try { await webAuthn.registerAsync(newName); setNewName(''); setAdding(false); onRefetch(); }
-        catch { setError('Failed to register passkey.'); }
+        try {
+            await webAuthn.registerAsync(newName);
+            setNewName('');
+            setAddOpen(false);
+            onRefetch();
+        } catch {
+            setError('Failed to register passkey.');
+        }
     };
 
-    const handleDelete = async (name: string) => {
-        setDeletingKey(name);
-        setConfirmingDelete(null);
-        try { await deleteKey.mutateAsync({ params: { path: { display_name: name } } }); onRefetch(); }
-        catch { setError('Failed to delete.'); }
-        finally { setDeletingKey(null); }
+    const handleDelete = () => {
+        if (!deleteTarget) return;
+        deleteKey.mutate({ params: { path: { credential_id: deleteTarget.credential_id } } });
     };
 
     return (
-        <FactorRow icon={<IconFingerprint />} name="Passkeys" description="Phishing-resistant authentication using your device or a hardware security key." tag={{ label: keys.length > 0 ? `${keys.length} key${keys.length > 1 ? 's' : ''}` : 'Disabled', enabled: keys.length > 0 }} onToggle={() => setAdding(v => !v)} open={adding}>
-            <div className="ml-9 px-5">
-                {adding && keys.length > 0 && (
-                    <div className="space-y-1 mt-2 mb-3 max-w-sm">
-                        {keys.map(key => (
-                            <div key={key.display_name} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 bg-muted/30">
-                                <div className="flex items-center gap-2">
-                                    <IconKey size={12} className="text-muted-foreground" />
-                                    <span className="text-sm">{key.display_name}</span>
-                                </div>
-                                {confirmingDelete === key.display_name ? (
-                                    <div className="flex items-center gap-1.5">
-                                        <button onClick={() => handleDelete(key.display_name)} disabled={deletingKey === key.display_name}
-                                            className="text-xs text-destructive hover:text-destructive/80 transition-colors disabled:opacity-30 font-medium">
-                                            {deletingKey === key.display_name ? 'Deleting…' : 'Confirm'}
-                                        </button>
-                                        <button onClick={() => setConfirmingDelete(null)}
-                                            className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button onClick={() => setConfirmingDelete(key.display_name)} disabled={deletingKey === key.display_name}
-                                        aria-label={`Delete ${key.display_name}`}
-                                        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30">
-                                        <IconTrash size={13} />
-                                    </button>
-                                )}
+        <>
+            <FactorRow icon={<IconFingerprint />} name="Passkeys" description="Phishing-resistant authentication using your device or a hardware security key." tag={{ label: keys.length > 0 ? `${keys.length} key${keys.length > 1 ? 's' : ''}` : 'Disabled', enabled: keys.length > 0 }} onToggle={() => setOpen(v => !v)} open={open}>
+                <ExpandForm open={open}>
+                    <div className="ml-9 px-5 pb-3">
+                        {keys.length > 0 && (
+                            <div className="space-y-1 mb-3 max-w-sm">
+                                {keys.map(key => (
+                                    <FactorKeyItem
+                                        key={key.credential_id}
+                                        icon={<IconFingerprint size={14} className="text-muted-foreground" />}
+                                        name={key.display_name}
+                                        subtitle="Passkey"
+                                        onRemove={() => { setDeleteTarget(key); setDeleteDialogOpen(true); }}
+                                    />
+                                ))}
                             </div>
-                        ))}
+                        )}
+                        <ErrorMsg msg={error} />
+                        <Button size="sm" onClick={() => { setAddOpen(true); setError(''); }}>
+                            <IconPlus size={14} /> Add passkey
+                        </Button>
                     </div>
-                )}
-                <ErrorMsg msg={error} />
-                <ExpandForm open={adding}>
-                    <form onSubmit={handleAdd} className="space-y-3 max-w-sm pb-4">
+                </ExpandForm>
+            </FactorRow>
+
+            {/* Add passkey modal */}
+            <Dialog open={addOpen} onOpenChange={(v) => { if (!v) { setNewName(''); setError(''); } setAddOpen(v); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add passkey</DialogTitle>
+                        <DialogDescription>
+                            Give your passkey a name, then follow your browser's prompt to register it.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleAdd} className="space-y-3">
                         <div className="space-y-1.5">
                             <Label htmlFor="webauthn-name" className="text-xs">Key name</Label>
                             <Input id="webauthn-name" value={newName} onChange={e => setNewName(e.target.value)}
                                 placeholder="YubiKey 5, iPhone Face ID…" className="h-9 text-sm" required maxLength={32} />
                         </div>
-                        <div className="flex gap-2">
-                            <Button size="sm" type="submit">Register</Button>
-                            <Button size="sm" variant="ghost" type="button" onClick={() => { setAdding(false); setError(''); }}>Cancel</Button>
+                        <ErrorMsg msg={error} />
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="outline" type="button" onClick={() => { setAddOpen(false); setNewName(''); setError(''); }}>Cancel</Button>
+                            <Button type="submit">Register</Button>
                         </div>
                     </form>
-                </ExpandForm>
-            </div>
-        </FactorRow>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete passkey confirmation */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete passkey</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete{' '}<span className="font-medium text-foreground">{deleteTarget?.display_name}</span>? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteKey.isPending}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete} disabled={deleteKey.isPending}>
+                            {deleteKey.isPending ? 'Deleting…' : 'Delete'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

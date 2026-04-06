@@ -36,7 +36,7 @@ impl MailService {
         Self {
             config,
             app_name,
-            public_url,
+            public_url: public_url.trim_end_matches('/').to_string(),
         }
     }
 
@@ -69,7 +69,7 @@ impl MailService {
     }
 
     pub async fn send_email_confirmation(&self, to: &str, token: &str) -> Result<()> {
-        let confirm_url = format!("{}/confirm-email?token={token}", self.public_url);
+        let confirm_url = format!("{}/api/confirm-email?token={token}", self.public_url);
         let html = templates::email_confirmation(&confirm_url);
         self.send(
             to,

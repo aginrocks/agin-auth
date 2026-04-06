@@ -9,9 +9,11 @@ import { Button } from '@components/ui/button';
 import { Label } from '@components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
 import { Input } from '@components/ui/input';
-import { IconKey, IconTrash } from '@tabler/icons-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@components/ui/dialog';
+import { IconKey, IconPlus } from '@tabler/icons-react';
 import { FactorRow } from './factor-row';
 import { ExpandForm } from './helpers';
+import { FactorKeyItem } from './factor-key-item';
 
 const pgpSchema = z.object({
     display_name: z.string().min(1, 'Required').max(32),
@@ -21,7 +23,9 @@ type PgpForm = z.infer<typeof pgpSchema>;
 
 export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display_name: string }[]; onRefetch: () => void }) {
     const [open, setOpen] = useState(false);
-    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [addOpen, setAddOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<{ fingerprint: string; display_name: string } | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const form = useForm<PgpForm>({
         resolver: zodResolver(pgpSchema),
@@ -31,7 +35,7 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
     const enable = $api.useMutation('post', '/api/settings/factors/pgp/enable', {
         onSuccess: () => {
             form.reset();
-            setOpen(false);
+            setAddOpen(false);
             onRefetch();
         },
         onError: () => {
@@ -39,12 +43,8 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
         },
     });
 
-    const disable = $api.useMutation('delete', '/api/settings/factors/pgp/disable', {
-        onSuccess: () => {
-            setConfirmDelete(false);
-            setOpen(false);
-            onRefetch();
-        },
+    const deleteKey = $api.useMutation('delete', '/api/settings/factors/pgp/delete/{fingerprint}', {
+        onSuccess: () => { setDeleteDialogOpen(false); onRefetch(); },
     });
 
     const isEnabled = pgp.length > 0;
@@ -55,54 +55,56 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
 
     const handleToggle = useCallback(() => {
         setOpen(v => !v);
-        setConfirmDelete(false);
     }, []);
 
+    const handleDelete = () => {
+        if (!deleteTarget) return;
+        deleteKey.mutate({ params: { path: { fingerprint: deleteTarget.fingerprint } } });
+    };
+
     return (
-        <FactorRow
-            icon={<IconKey />}
-            name="PGP Key"
-            description="Authenticate by signing a server challenge with your PGP private key."
-            tag={{ label: isEnabled ? pgp[0]?.display_name ?? 'Enabled' : 'Disabled', enabled: isEnabled }}
-            onToggle={handleToggle}
-            open={open}
-        >
-            {isEnabled ? (
+        <>
+            <FactorRow
+                icon={<IconKey />}
+                name="PGP Key"
+                description="Authenticate by signing a server challenge with your PGP private key."
+                tag={{ label: isEnabled ? `${pgp.length} key${pgp.length > 1 ? 's' : ''}` : 'Disabled', enabled: isEnabled }}
+                onToggle={handleToggle}
+                open={open}
+            >
                 <ExpandForm open={open}>
-                    <div className="ml-9 px-5 pb-4 space-y-2">
-                        <div className="flex items-center gap-3 w-fit">
-                            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-                                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">Fingerprint</p>
-                                <code className="font-mono text-[11px] text-foreground break-all">{pgp[0]?.fingerprint}</code>
+                    <div className="ml-9 px-5 pb-3">
+                        {isEnabled && (
+                            <div className="space-y-1 mb-3 max-w-sm">
+                                {pgp.map(key => (
+                                    <FactorKeyItem
+                                        key={key.fingerprint}
+                                        icon={<IconKey size={14} className="text-muted-foreground" />}
+                                        name={key.display_name}
+                                        subtitle={key.fingerprint}
+                                        onRemove={() => { setDeleteTarget(key); setDeleteDialogOpen(true); }}
+                                    />
+                                ))}
                             </div>
-                            {confirmDelete ? (
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                    <button onClick={() => disable.mutate({})} disabled={disable.isPending}
-                                        className="text-xs text-destructive hover:text-destructive/80 font-medium transition-colors disabled:opacity-30">
-                                        {disable.isPending ? 'Removing…' : 'Confirm'}
-                                    </button>
-                                    <button onClick={() => setConfirmDelete(false)}
-                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        Cancel
-                                    </button>
-                                </div>
-                            ) : (
-                                <button onClick={() => setConfirmDelete(true)}
-                                    aria-label="Remove PGP key"
-                                    className="shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-                                    <IconTrash size={13} />
-                                </button>
-                            )}
-                        </div>
-                        {disable.isError && (
-                            <p className="text-xs text-destructive">Failed to remove.</p>
                         )}
+                        <Button size="sm" onClick={() => { setAddOpen(true); form.reset(); }}>
+                            <IconPlus size={14} /> Add PGP key
+                        </Button>
                     </div>
                 </ExpandForm>
-            ) : (
-                <ExpandForm open={open}>
+            </FactorRow>
+
+            {/* Add PGP key modal */}
+            <Dialog open={addOpen} onOpenChange={(v) => { if (!v) form.reset(); setAddOpen(v); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Add PGP key</DialogTitle>
+                        <DialogDescription>
+                            Provide a name and your ASCII-armored public key.
+                        </DialogDescription>
+                    </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="ml-9 px-5 pb-4 space-y-3 max-w-sm">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
                             <FormField control={form.control} name="display_name" render={({ field }) => (
                                 <FormItem className="space-y-1.5">
                                     <Label className="text-xs">Name</Label>
@@ -123,16 +125,39 @@ export function PgpRow({ pgp, onRefetch }: { pgp: { fingerprint: string; display
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <div className="flex gap-2">
-                                <Button size="sm" type="submit" disabled={enable.isPending}>
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="outline" type="button" onClick={() => { setAddOpen(false); form.reset(); }}>Cancel</Button>
+                                <Button type="submit" disabled={enable.isPending}>
                                     {enable.isPending ? 'Adding…' : 'Add key'}
                                 </Button>
-                                <Button size="sm" variant="ghost" type="button" onClick={() => { setOpen(false); form.reset(); }}>Cancel</Button>
                             </div>
                         </form>
                     </Form>
-                </ExpandForm>
-            )}
-        </FactorRow>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete PGP key confirmation */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Remove PGP key</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete{' '}<span className="font-medium text-foreground">{deleteTarget?.display_name}</span>? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {deleteKey.isError && (
+                        <p className="text-xs text-destructive">Failed to remove PGP key.</p>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteKey.isPending}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete} disabled={deleteKey.isPending}>
+                            {deleteKey.isPending ? 'Removing…' : 'Remove'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

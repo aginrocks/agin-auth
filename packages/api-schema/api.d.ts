@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/.well-known/openid-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["openid_configuration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/applications": {
         parameters: {
             query?: never;
@@ -46,13 +62,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
          * Confirm email address
-         * @description Validates the confirmation token and marks the user's email as confirmed. Tokens expire after 24 hours and are deleted on use.
+         * @description Validates the confirmation token, marks the email as confirmed, and redirects to the frontend result page.
          */
-        post: operations["confirm_email"];
+        get: operations["confirm_email"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -264,6 +280,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Log out
+         * @description Destroys the current session, effectively logging the user out.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oidc/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get authorization info (requires session) */
+        get: operations["authorize_get"];
+        put?: never;
+        /** Approve authorization (user consent) */
+        post: operations["authorize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oidc/jwks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** JSON Web Key Set */
+        get: operations["jwks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oidc/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OAuth2 Token endpoint */
+        post: operations["token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oidc/userinfo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OpenID Connect UserInfo endpoint */
+        get: operations["userinfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/password-reset": {
         parameters: {
             query?: never;
@@ -318,6 +423,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete account
+         * @description Permanently deletes the user's account. This action is irreversible.
+         */
+        delete: operations["delete_account"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/factors": {
         parameters: {
             query?: never;
@@ -365,6 +490,26 @@ export interface paths {
         put?: never;
         post: operations["password_enable"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/factors/pgp/delete/{fingerprint}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete PGP key
+         * @description Removes a single PGP authentication key from the user's account.
+         */
+        delete: operations["delete_pgp"];
         options?: never;
         head?: never;
         patch?: never;
@@ -510,7 +655,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/settings/factors/webauthn/delete/{display_name}": {
+    "/api/settings/factors/webauthn/delete/{credential_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -522,7 +667,7 @@ export interface paths {
         post?: never;
         /**
          * Delete WebAuthn key
-         * @description Removes a WebAuthn passkey by its display name.
+         * @description Removes a WebAuthn passkey by its credential ID.
          */
         delete: operations["delete_webauthn"];
         options?: never;
@@ -581,13 +726,37 @@ export interface paths {
         put?: never;
         /**
          * Change password
-         * @description Changes the current user's password. Requires the current password for verification.
+         * @description Changes the current user's password.
          */
         post: operations["change_password"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/settings/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user profile
+         * @description Returns the current user's profile information.
+         */
+        get: operations["get_profile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update user profile
+         * @description Updates the current user's profile. Only provided fields will be updated.
+         */
+        patch: operations["update_profile"];
         trace?: never;
     };
 }
@@ -598,19 +767,15 @@ export interface components {
         AllowCredentials: {
             /** @description The id of the credential. */
             id: string;
-            /**
-             * @description <https://www.w3.org/TR/webauthn/#transport>
-             *     may be usb, nfc, ble, internal
-             */
+            /** @description <https://www.w3.org/TR/webauthn/#transport>
+             *     may be usb, nfc, ble, internal */
             transports?: components["schemas"]["AuthenticatorTransport"][] | null;
             /** @description The type of credential. */
             type: string;
         };
-        /**
-         * @example {
+        /** @example {
          *       "error": "TOTP is already enabled. To rotate your TOTP secret, disable it first and then enable it again."
-         *     }
-         */
+         *     } */
         AlreadyEnabledError: {
             error: string;
         };
@@ -632,10 +797,8 @@ export interface components {
             /** @description A list of factors to choose from for the next authentication step. */
             next: string[];
         };
-        /**
-         * @description <https://w3c.github.io/webauthn/#dictdef-authenticationextensionsclientoutputs>
-         *     The default option here for Options are None, so it can be derived
-         */
+        /** @description <https://w3c.github.io/webauthn/#dictdef-authenticationextensionsclientoutputs>
+         *     The default option here for Options are None, so it can be derived */
         AuthenticationExtensionsClientOutputs: {
             /** @description Indicates whether the client used the provided appid extension */
             appid?: boolean | null;
@@ -672,18 +835,14 @@ export interface components {
         /** @description <https://www.w3.org/TR/webauthn/#dictdef-authenticatorselectioncriteria> */
         AuthenticatorSelectionCriteria: {
             authenticatorAttachment?: null | components["schemas"]["AuthenticatorAttachment"];
-            /**
-             * @description Hint to the credential to create a resident key. Note this can not be enforced
+            /** @description Hint to the credential to create a resident key. Note this can not be enforced
              *     or validated, so the authenticator may choose to ignore this parameter.
-             *     <https://www.w3.org/TR/webauthn/#resident-credential>
-             */
+             *     <https://www.w3.org/TR/webauthn/#resident-credential> */
             requireResidentKey: boolean;
             residentKey?: null | components["schemas"]["ResidentKeyRequirement"];
-            /**
-             * @description The user verification level to request during registration. Depending on if this
+            /** @description The user verification level to request during registration. Depending on if this
              *     authenticator provides verification may affect future interactions as this is
-             *     associated to the credential during registration.
-             */
+             *     associated to the credential during registration. */
             userVerification: components["schemas"]["UserVerificationPolicy"];
         };
         /**
@@ -691,16 +850,32 @@ export interface components {
          * @enum {string}
          */
         AuthenticatorTransport: "usb" | "nfc" | "ble" | "internal" | "hybrid" | "test" | "unknown";
-        /**
-         * @example {
+        AuthorizeConsent: {
+            client_id: string;
+            nonce?: string | null;
+            redirect_uri: string;
+            scope: string;
+            state?: string | null;
+        };
+        AuthorizeInfo: {
+            app_icon?: string | null;
+            app_name: string;
+            client_id: string;
+            nonce?: string | null;
+            redirect_uri: string;
+            scopes: string[];
+            state?: string | null;
+        };
+        AuthorizeResponse: {
+            redirect_url: string;
+        };
+        /** @example {
          *       "error": "User with this username or email already exists"
-         *     }
-         */
+         *     } */
         BadRequestError: {
             error: string;
         };
         ChangePasswordBody: {
-            current_password: string;
             new_password: string;
         };
         ChangePasswordResponse: {
@@ -708,12 +883,6 @@ export interface components {
         };
         /** @enum {string} */
         ClientType: "public" | "confidential";
-        ConfirmEmailBody: {
-            token: string;
-        };
-        ConfirmEmailResponse: {
-            success: boolean;
-        };
         ConfirmResetBody: {
             new_password: string;
             token: string;
@@ -721,58 +890,46 @@ export interface components {
         ConfirmResetResponse: {
             success: boolean;
         };
-        /**
-         * @example {
+        /** @example {
          *       "success": true
-         *     }
-         */
+         *     } */
         ConfirmTotpResponse: {
             success: boolean;
         };
-        /**
-         * @example {
+        /** @example {
          *       "success": true,
          *       "id": "60c72b2f9b1d8c001c8e4f5a"
-         *     }
-         */
+         *     } */
         CreateSuccess: {
             id: string;
             success: boolean;
         };
-        /**
-         * @description A JSON serializable challenge which is issued to the user's web browser
+        /** @description A JSON serializable challenge which is issued to the user's web browser
          *     for handling. This is meant to be opaque, that is, you should not need
          *     to inspect or alter the content of the struct - you should serialise it
-         *     and transmit it to the client only.
-         */
+         *     and transmit it to the client only. */
         CreationChallengeResponse: {
             /** @description The options. */
             publicKey: components["schemas"]["PublicKeyCredentialCreationOptions"];
         };
         /** @description <https://www.w3.org/TR/webauthn-3/#sctn-authenticator-credential-properties-extension> */
         CredProps: {
-            /**
-             * @description A user agent supplied hint that this credential *may* have created a resident key. It is
+            /** @description A user agent supplied hint that this credential *may* have created a resident key. It is
              *     retured from the user agent, not the authenticator meaning that this is an unreliable
              *     signal.
              *
-             *     Note that this extension is UNSIGNED and may have been altered by page javascript.
-             */
+             *     Note that this extension is UNSIGNED and may have been altered by page javascript. */
             rk: boolean;
         };
-        /**
-         * @description The desired options for the client's use of the `credProtect` extension
+        /** @description The desired options for the client's use of the `credProtect` extension
          *
-         *     <https://fidoalliance.org/specs/fido-v2.1-rd-20210309/fido-client-to-authenticator-protocol-v2.1-rd-20210309.html#sctn-credProtect-extension>
-         */
+         *     <https://fidoalliance.org/specs/fido-v2.1-rd-20210309/fido-client-to-authenticator-protocol-v2.1-rd-20210309.html#sctn-credProtect-extension> */
         CredProtect: {
             /** @description The credential policy to enact */
             credentialProtectionPolicy: components["schemas"]["CredentialProtectionPolicy"];
-            /**
-             * @description Whether it is better for the authenticator to fail to create a
+            /** @description Whether it is better for the authenticator to fail to create a
              *     credential rather than ignore the protection policy
-             *     If no value is provided, the client treats it as `false`.
-             */
+             *     If no value is provided, the client treats it as `false`. */
             enforceCredentialProtectionPolicy?: boolean | null;
         };
         /**
@@ -780,27 +937,27 @@ export interface components {
          * @enum {string}
          */
         CredentialProtectionPolicy: "userVerificationOptional" | "userVerificationOptionalWithCredentialIDList" | "userVerificationRequired";
-        /**
-         * @example {
+        /** @example {
          *       "success": true
-         *     }
-         */
+         *     } */
+        DeletePgpResponse: {
+            success: boolean;
+        };
+        /** @example {
+         *       "success": true
+         *     } */
         DeleteWebAuthnResponse: {
             success: boolean;
         };
-        /**
-         * @example {
+        /** @example {
          *       "success": true
-         *     }
-         */
+         *     } */
         DisablePgpResponse: {
             success: boolean;
         };
-        /**
-         * @example {
+        /** @example {
          *       "success": true
-         *     }
-         */
+         *     } */
         DisableTotpResponse: {
             success: boolean;
         };
@@ -818,11 +975,9 @@ export interface components {
             display_name: string;
             public_key: string;
         };
-        /**
-         * @example {
+        /** @example {
          *       "success": true
-         *     }
-         */
+         *     } */
         EnablePgpResponse: {
             success: boolean;
         };
@@ -854,19 +1009,15 @@ export interface components {
         };
         /** @enum {string} */
         FirstFactor: "password" | "webauthnpasswordless" | "pgp";
-        /**
-         * @example {
+        /** @example {
          *       "error": "Forbidden"
-         *     }
-         */
+         *     } */
         ForbiddenError: {
             error: string;
         };
-        /**
-         * @description The inputs to the hmac secret if it was created during registration.
+        /** @description The inputs to the hmac secret if it was created during registration.
          *
-         *     <https://fidoalliance.22org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#sctn-hmac-secret-extension>
-         */
+         *     <https://fidoalliance.22org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#sctn-hmac-secret-extension> */
         HmacGetSecretInput: {
             /** @description Retrieve a symmetric secrets from the authenticator with this input. */
             output1: string;
@@ -880,35 +1031,27 @@ export interface components {
             /** @description Output of HMAC(Salt 2 || Client Secret) */
             output2?: string | null;
         };
-        /**
-         * @example {
+        /** @example {
          *       "error": "Invalid 2FA code"
-         *     }
-         */
+         *     } */
         Invalid2faCode: {
             error: string;
         };
-        /**
-         * @example {
+        /** @example {
          *       "error": "Invalid recovery code"
-         *     }
-         */
+         *     } */
         InvalidRecoveryCode: {
             error: string;
         };
-        /**
-         * @example {
+        /** @example {
          *       "error": "Invalid signature"
-         *     }
-         */
+         *     } */
         InvalidSignature: {
             error: string;
         };
-        /**
-         * @example {
+        /** @example {
          *       "error": "Invalid username or password"
-         *     }
-         */
+         *     } */
         InvalidUserOrPass: {
             error: string;
         };
@@ -916,6 +1059,9 @@ export interface components {
             password: string;
             /** @description Username or email address */
             username: string;
+        };
+        LogoutResponse: {
+            success: boolean;
         };
         /**
          * @description Request in residentkey workflows that conditional mediation should be used
@@ -937,6 +1083,14 @@ export interface components {
         };
         PgpChallengeResponse: {
             challenge: string;
+        };
+        ProfileResponse: {
+            display_name: string;
+            email: string;
+            email_confirmed: boolean;
+            first_name: string;
+            last_name: string;
+            preferred_username: string;
         };
         /** @description Public key cryptographic parameters */
         PubKeyCredParams: {
@@ -966,14 +1120,12 @@ export interface components {
             totp?: null | components["schemas"]["PublicTOTPFactor"];
             webauthn: components["schemas"]["PublicWebAuthnFactor"][];
         };
-        /**
-         * @description A client response to an authentication challenge. This contains all required
+        /** @description A client response to an authentication challenge. This contains all required
          *     information to asses and assert trust in a credentials legitimacy, followed
          *     by authentication to a user.
          *
          *     You should not need to handle the inner content of this structure - you should
-         *     provide this to the correctly handling function of Webauthn only.
-         */
+         *     provide this to the correctly handling function of Webauthn only. */
         PublicKeyCredential: {
             /** @description Unsigned Client processed extensions. */
             extensions?: components["schemas"]["AuthenticationExtensionsClientOutputs"];
@@ -1015,10 +1167,8 @@ export interface components {
         PublicKeyCredentialDescriptor: {
             /** @description The credential id. */
             id: string;
-            /**
-             * @description The allowed transports for this credential. Note this is a hint, and is NOT
-             *     enforced.
-             */
+            /** @description The allowed transports for this credential. Note this is a hint, and is NOT
+             *     enforced. */
             transports?: components["schemas"]["AuthenticatorTransport"][] | null;
             /** @description The type of credential */
             type: string;
@@ -1065,6 +1215,7 @@ export interface components {
             fully_enabled: boolean;
         };
         PublicWebAuthnFactor: {
+            credential_id: string;
             display_name: string;
         };
         RecentFactors: {
@@ -1082,43 +1233,35 @@ export interface components {
             password: string;
             preferred_username: string;
         };
-        /**
-         * @description A client response to a registration challenge. This contains all required
+        /** @description A client response to a registration challenge. This contains all required
          *     information to assess and assert trust in a credential's legitimacy, followed
          *     by registration to a user.
          *
          *     You should not need to handle the inner content of this structure - you should
          *     provide this to the correctly handling function of Webauthn only.
-         *     <https://w3c.github.io/webauthn/#iface-pkcredential>
-         */
+         *     <https://w3c.github.io/webauthn/#iface-pkcredential> */
         RegisterPublicKeyCredential: {
             /** @description Unsigned Client processed extensions. */
             extensions?: components["schemas"]["RegistrationExtensionsClientOutputs"];
-            /**
-             * @description The id of the PublicKey credential, likely in base64.
+            /** @description The id of the PublicKey credential, likely in base64.
              *
              *     This is NEVER actually
              *     used in a real registration, because the true credential ID is taken from the
-             *     attestation data.
-             */
+             *     attestation data. */
             id: string;
-            /**
-             * @description The id of the credential, as binary.
+            /** @description The id of the credential, as binary.
              *
              *     This is NEVER actually
              *     used in a real registration, because the true credential ID is taken from the
-             *     attestation data.
-             */
+             *     attestation data. */
             rawId: string;
             /** @description <https://w3c.github.io/webauthn/#dom-publickeycredential-response> */
             response: components["schemas"]["AuthenticatorAttestationResponseRaw"];
             /** @description The type of credential. */
             type: string;
         };
-        /**
-         * @description <https://w3c.github.io/webauthn/#dictdef-authenticationextensionsclientoutputs>
-         *     The default option here for Options are None, so it can be derived
-         */
+        /** @description <https://w3c.github.io/webauthn/#dictdef-authenticationextensionsclientoutputs>
+         *     The default option here for Options are None, so it can be derived */
         RegistrationExtensionsClientOutputs: {
             /** @description Indicates whether the client used the provided appid extension */
             appid?: boolean | null;
@@ -1139,55 +1282,41 @@ export interface components {
             /** @description The name of the relying party. */
             name: string;
         };
-        /**
-         * @description Extension option inputs for PublicKeyCredentialRequestOptions
+        /** @description Extension option inputs for PublicKeyCredentialRequestOptions
          *
-         *     Implements \[AuthenticatorExtensionsClientInputs\] from the spec
-         */
+         *     Implements \[AuthenticatorExtensionsClientInputs\] from the spec */
         RequestAuthenticationExtensions: {
             /** @description The `appid` extension options */
             appid?: string | null;
             hmacGetSecret?: null | components["schemas"]["HmacGetSecretInput"];
-            /**
-             * @description ⚠️  - Browsers do not support this!
-             *     Uvm
-             */
+            /** @description ⚠️  - Browsers do not support this!
+             *     Uvm */
             uvm?: boolean | null;
         };
-        /**
-         * @description A JSON serializable challenge which is issued to the user's webbrowser
+        /** @description A JSON serializable challenge which is issued to the user's webbrowser
          *     for handling. This is meant to be opaque, that is, you should not need
          *     to inspect or alter the content of the struct - you should serialise it
-         *     and transmit it to the client only.
-         */
+         *     and transmit it to the client only. */
         RequestChallengeResponse: {
             mediation?: null | components["schemas"]["Mediation"];
             /** @description The options. */
             publicKey: components["schemas"]["PublicKeyCredentialRequestOptions"];
         };
-        /**
-         * @description Extension option inputs for PublicKeyCredentialCreationOptions.
+        /** @description Extension option inputs for PublicKeyCredentialCreationOptions.
          *
-         *     Implements \[AuthenticatorExtensionsClientInputs\] from the spec.
-         */
+         *     Implements \[AuthenticatorExtensionsClientInputs\] from the spec. */
         RequestRegistrationExtensions: (null | components["schemas"]["CredProtect"]) & {
-            /**
-             * @description ⚠️  - This extension result is always unsigned, and only indicates if the
+            /** @description ⚠️  - This extension result is always unsigned, and only indicates if the
              *     browser *requests* a residentKey to be created. It has no bearing on the
-             *     true rk state of the credential.
-             */
+             *     true rk state of the credential. */
             credProps?: boolean | null;
-            /**
-             * @description ⚠️  - Browsers support the *creation* of the secret, but not the retrieval of it.
-             *     CTAP2.1 create hmac secret
-             */
+            /** @description ⚠️  - Browsers support the *creation* of the secret, but not the retrieval of it.
+             *     CTAP2.1 create hmac secret */
             hmacCreateSecret?: boolean | null;
             /** @description CTAP2.1 Minumum pin length */
             minPinLength?: boolean | null;
-            /**
-             * @description ⚠️  - Browsers do not support this!
-             *     Uvm
-             */
+            /** @description ⚠️  - Browsers do not support this!
+             *     Uvm */
             uvm?: boolean | null;
         };
         RequestResetBody: {
@@ -1221,36 +1350,71 @@ export interface components {
             second_factors?: components["schemas"]["SecondFactor"][] | null;
             two_factor_required: boolean;
         };
+        SudoBody: {
+            /** @description Current password for identity verification. */
+            password?: string | null;
+            /** @description TOTP code for identity verification (required if TOTP is enabled). */
+            totp_code?: string | null;
+        };
+        SudoResponse: {
+            success: boolean;
+        };
+        TokenRequest: {
+            client_id?: string | null;
+            client_secret?: string | null;
+            code?: string | null;
+            grant_type: string;
+            redirect_uri?: string | null;
+            refresh_token?: string | null;
+        };
+        TokenResponse: {
+            access_token: string;
+            /** Format: int64 */
+            expires_in: number;
+            id_token?: string | null;
+            refresh_token?: string | null;
+            scope: string;
+            token_type: string;
+        };
         TotpCodeBody: {
             /** @description TOTP code to confirm enabling the factor. */
             code: string;
         };
-        /**
-         * @example {
+        /** @example {
          *       "error": "Unauthorized"
-         *     }
-         */
+         *     } */
         UnauthorizedError: {
             error: string;
         };
+        UpdateProfileBody: {
+            display_name?: string | null;
+            first_name?: string | null;
+            last_name?: string | null;
+        };
+        UpdateProfileResponse: {
+            success: boolean;
+        };
         /** @description User Entity */
         User: {
-            /**
-             * @description The user's preferred name for display. This value **can** change, so
-             *     **must not** be used as a primary key.
-             */
+            /** @description The user's preferred name for display. This value **can** change, so
+             *     **must not** be used as a primary key. */
             displayName: string;
-            /**
-             * @description The user's id in base64 form. This MUST be a unique id, and
+            /** @description The user's id in base64 form. This MUST be a unique id, and
              *     must NOT contain personally identifying information, as this value can NEVER
-             *     be changed. If in doubt, use a UUID.
-             */
+             *     be changed. If in doubt, use a UUID. */
             id: string;
-            /**
-             * @description A detailed name for the account, such as an email address. This value
-             *     **can** change, so **must not** be used as a primary key.
-             */
+            /** @description A detailed name for the account, such as an email address. This value
+             *     **can** change, so **must not** be used as a primary key. */
             name: string;
+        };
+        UserInfoResponse: {
+            email?: string | null;
+            email_verified?: boolean | null;
+            family_name?: string | null;
+            given_name?: string | null;
+            name?: string | null;
+            preferred_username?: string | null;
+            sub: string;
         };
         /**
          * @description Defines the User Authenticator Verification policy. This is documented
@@ -1287,11 +1451,9 @@ export interface components {
          * @enum {string}
          */
         UserVerificationPolicy: "required" | "preferred" | "discouraged";
-        /**
-         * @example {
+        /** @example {
          *       "success": true
-         *     }
-         */
+         *     } */
         WebAuthnFinishSuccess: {
             success: boolean;
         };
@@ -1307,6 +1469,31 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    openid_configuration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OpenID Connect Discovery document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to build discovery document */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_applications: {
         parameters: {
             query?: never;
@@ -1422,34 +1609,22 @@ export interface operations {
     };
     confirm_email: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description Confirmation token from the email link */
+                token: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmEmailBody"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Email confirmed */
-            200: {
+            /** @description Redirects to frontend with status */
+            302: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["ConfirmEmailResponse"];
-                };
-            };
-            /** @description Invalid or expired token */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string;
-                };
+                content?: never;
             };
         };
     };
@@ -1763,6 +1938,174 @@ export interface operations {
             };
         };
     };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logged out */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutResponse"];
+                };
+            };
+        };
+    };
+    authorize_get: {
+        parameters: {
+            query: {
+                client_id: string;
+                redirect_uri: string;
+                response_type: string;
+                scope?: string;
+                state?: string;
+                nonce?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorization info */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizeInfo"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    authorize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizeConsent"];
+            };
+        };
+        responses: {
+            /** @description Authorization code issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizeResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    jwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JWKS Document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["TokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Token response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Token error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    userinfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User info */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserInfoResponse"];
+                };
+            };
+            /** @description Invalid or missing access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     request_reset: {
         parameters: {
             query?: never;
@@ -1862,6 +2205,24 @@ export interface operations {
             };
         };
     };
+    delete_account: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Account deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     get_factors: {
         parameters: {
             query?: never;
@@ -1953,6 +2314,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FactorEnableError"];
+                };
+            };
+        };
+    };
+    delete_pgp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fingerprint of the PGP key to remove */
+                fingerprint: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletePgpResponse"];
+                };
+            };
+            /** @description PGP key not found */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
                 };
             };
         };
@@ -2222,8 +2624,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Display name of the WebAuthn key to delete */
-                display_name: string;
+                /** @description Credential ID of the WebAuthn key to delete */
+                credential_id: string;
             };
             cookie?: never;
         };
@@ -2346,15 +2748,6 @@ export interface operations {
                     "application/json": components["schemas"]["ChangePasswordResponse"];
                 };
             };
-            /** @description Invalid current password or password not set */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string;
-                };
-            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -2363,6 +2756,57 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UnauthorizedError"];
                 };
+            };
+        };
+    };
+    get_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+        };
+    };
+    update_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileBody"];
+            };
+        };
+        responses: {
+            /** @description Profile updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateProfileResponse"];
+                };
+            };
+            /** @description No fields to update */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

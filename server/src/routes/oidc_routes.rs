@@ -45,7 +45,7 @@ pub fn routes() -> OpenApiRouter<AppState> {
     responses(
         (status = OK, description = "JWKS Document"),
     ),
-    tag = "OAuth"
+    tag = "OIDC"
 )]
 async fn jwks(Extension(state): Extension<AppState>) -> impl IntoResponse {
     Json(serde_json::to_value(&state.oidc_keys.jwks).unwrap_or_default())
@@ -93,7 +93,7 @@ pub struct AuthorizeInfo {
         (status = OK, description = "Authorization info", body = AuthorizeInfo),
         (status = BAD_REQUEST, description = "Invalid request"),
     ),
-    tag = "OAuth"
+    tag = "OIDC"
 )]
 async fn authorize_get(
     Extension(state): Extension<AppState>,
@@ -193,7 +193,7 @@ pub struct AuthorizeResponse {
         (status = BAD_REQUEST, description = "Invalid request"),
         (status = UNAUTHORIZED, description = "Not authenticated"),
     ),
-    tag = "OAuth"
+    tag = "OIDC"
 )]
 async fn authorize_post(
     Extension(state): Extension<AppState>,
@@ -318,7 +318,7 @@ pub struct TokenError {
         (status = OK, description = "Token response", body = TokenResponse),
         (status = BAD_REQUEST, description = "Token error"),
     ),
-    tag = "OAuth"
+    tag = "OIDC"
 )]
 async fn token(
     Extension(state): Extension<AppState>,
@@ -890,7 +890,7 @@ pub struct UserInfoResponse {
         (status = OK, description = "User info", body = UserInfoResponse),
         (status = UNAUTHORIZED, description = "Invalid or missing access token"),
     ),
-    tag = "OAuth"
+    tag = "OIDC"
 )]
 async fn userinfo(
     Extension(state): Extension<AppState>,

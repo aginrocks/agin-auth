@@ -1,4 +1,3 @@
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{Extension, Json};
 use axum_valid::Valid;
 use color_eyre::eyre::{self, ContextCompat};
@@ -13,7 +12,7 @@ use crate::{
     database::{User, get_user_by_id},
     middlewares::require_auth::{UnauthorizedError, UserId},
     state::AppState,
-    utils::hash_password,
+    utils::{hash_password, verify_password},
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
@@ -65,11 +64,7 @@ async fn change_password(
             AxumError::bad_request(eyre::eyre!("Password is not set for this account"))
         })?;
 
-    let parsed_hash = PasswordHash::new(password_hash)
-        .map_err(|_| eyre::eyre!("Failed to parse password hash"))?;
-
-    Argon2::default()
-        .verify_password(body.current_password.as_bytes(), &parsed_hash)
+    verify_password(&body.current_password, password_hash)
         .map_err(|_| AxumError::bad_request(eyre::eyre!("Current password is incorrect")))?;
 
     let new_hash = hash_password(&body.new_password)?;

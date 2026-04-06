@@ -1,7 +1,3 @@
-use argon2::{
-    Argon2, PasswordHash, PasswordVerifier,
-    password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
-};
 use axum::{Extension, Json};
 use axum_client_ip::ClientIp;
 use color_eyre::eyre;
@@ -16,6 +12,7 @@ use crate::{
     database::{FirstFactor, get_second_factors, get_user, set_recent_factor},
     routes::api::AuthState,
     state::AppState,
+    utils::{hash_password, verify_password},
 };
 
 use super::SuccessfulLoginResponse;
@@ -67,12 +64,7 @@ async fn login_with_password(
             .password_hash
             .is_none()
     {
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-
-        argon2
-            .hash_password(body.password.as_bytes(), &salt)
-            .map_err(|_| eyre::eyre!("Failed to compute hash"))?;
+        let _ = hash_password(&body.password);
 
         return Err(AxumError::unauthorized(eyre::eyre!(
             "Invalid username or password"
@@ -83,12 +75,7 @@ async fn login_with_password(
 
     let password_hash = &user.clone().auth_factors.password.password_hash.unwrap();
 
-    let parsed_hash =
-        PasswordHash::new(password_hash).map_err(|_| eyre::eyre!("Failed to compute hash"))?;
-    let argon2 = Argon2::default();
-
-    argon2
-        .verify_password(body.password.as_bytes(), &parsed_hash)
+    verify_password(&body.password, password_hash)
         .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid username or password")))?;
 
     session.insert("user_id", user.id).await?;

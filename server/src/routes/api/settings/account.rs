@@ -1,4 +1,3 @@
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{Extension, Json, http::StatusCode};
 use color_eyre::eyre::{self, OptionExt};
 use mongodb::bson::doc;
@@ -12,6 +11,7 @@ use crate::{
     database::User,
     middlewares::require_auth::UserId,
     state::AppState,
+    utils::verify_password,
 };
 
 pub fn routes() -> OpenApiRouter<AppState> {
@@ -57,11 +57,7 @@ async fn delete_account(
         .password_hash
         .ok_or_else(|| AxumError::unauthorized(eyre::eyre!("Password not set")))?;
 
-    let parsed_hash =
-        PasswordHash::new(&password_hash).map_err(|_| eyre::eyre!("Failed to parse hash"))?;
-
-    Argon2::default()
-        .verify_password(body.password.as_bytes(), &parsed_hash)
+    verify_password(&body.password, &password_hash)
         .map_err(|_| AxumError::unauthorized(eyre::eyre!("Invalid password")))?;
 
     // Delete user

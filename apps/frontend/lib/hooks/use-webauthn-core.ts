@@ -23,7 +23,6 @@ export function useWebAuthnAssertion(
             });
 
             const assertion = await navigator.credentials.get({
-                // @ts-expect-error Someone fucked up Credential type definitions
                 publicKey: credentialRequestOptions.publicKey,
             });
 

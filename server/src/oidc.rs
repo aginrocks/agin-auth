@@ -72,13 +72,32 @@ pub struct RefreshToken {
     pub revoked: bool,
 }
 
-const KEY_FILE: &str = "oidc-signing-key.pem";
+/// Generate an OIDC signing key file at the default path.
+/// Called during first-run config generation.
+pub fn generate_oidc_key_file(key_file: &str) -> Result<()> {
+    if std::path::Path::new(key_file).exists() {
+        return Ok(());
+    }
 
-/// Initialize OIDC keys — load from file or generate new.
-pub fn init_oidc_keys() -> Result<Arc<OidcKeys>> {
-    let (private_key, public_key) = if std::path::Path::new(KEY_FILE).exists() {
-        info!("Loading OIDC signing key from {KEY_FILE}");
-        let pem = std::fs::read_to_string(KEY_FILE).wrap_err("Failed to read OIDC signing key")?;
+    info!("Generating new OIDC signing key ({RSA_KEY_BITS} bits)...");
+    let mut rng = rsa::rand_core::OsRng;
+    let private_key =
+        RsaPrivateKey::new(&mut rng, RSA_KEY_BITS).wrap_err("Failed to generate RSA key")?;
+
+    let pem = private_key
+        .to_pkcs1_pem(LineEnding::LF)
+        .wrap_err("Failed to encode RSA key to PEM")?;
+    std::fs::write(key_file, pem.as_str()).wrap_err("Failed to write OIDC signing key")?;
+    info!("OIDC signing key saved to {key_file}");
+
+    Ok(())
+}
+
+/// Initialize OIDC keys — load from file specified in config, or generate new if missing.
+pub fn init_oidc_keys(key_file: &str) -> Result<Arc<OidcKeys>> {
+    let (private_key, public_key) = if std::path::Path::new(key_file).exists() {
+        info!("Loading OIDC signing key from {key_file}");
+        let pem = std::fs::read_to_string(key_file).wrap_err("Failed to read OIDC signing key")?;
         let private_key =
             RsaPrivateKey::from_pkcs1_pem(&pem).wrap_err("Failed to parse OIDC signing key")?;
         let public_key = RsaPublicKey::from(&private_key);
@@ -94,8 +113,8 @@ pub fn init_oidc_keys() -> Result<Arc<OidcKeys>> {
         let pem = private_key
             .to_pkcs1_pem(LineEnding::LF)
             .wrap_err("Failed to encode RSA key to PEM")?;
-        std::fs::write(KEY_FILE, pem.as_str()).wrap_err("Failed to write OIDC signing key")?;
-        info!("OIDC signing key saved to {KEY_FILE}");
+        std::fs::write(key_file, pem.as_str()).wrap_err("Failed to write OIDC signing key")?;
+        info!("OIDC signing key saved to {key_file}");
 
         (private_key, public_key)
     };
@@ -158,10 +177,10 @@ impl OidcKeys {
 /// Build the OIDC discovery document using `CoreProviderMetadata`.
 pub fn build_provider_metadata(issuer: &str) -> Result<CoreProviderMetadata> {
     let issuer_url = IssuerUrl::new(issuer.to_string()).wrap_err("Invalid issuer URL")?;
-    let auth_url = AuthUrl::new(format!("{issuer}/api/oauth/authorize"))
+    let auth_url = AuthUrl::new(format!("{issuer}/api/oidc/authorize"))
         .wrap_err("Invalid authorization URL")?;
     let jwks_url =
-        JsonWebKeySetUrl::new(format!("{issuer}/api/oauth/jwks")).wrap_err("Invalid JWKS URL")?;
+        JsonWebKeySetUrl::new(format!("{issuer}/api/oidc/jwks")).wrap_err("Invalid JWKS URL")?;
 
     let provider_metadata = CoreProviderMetadata::new(
         issuer_url,
@@ -173,11 +192,10 @@ pub fn build_provider_metadata(issuer: &str) -> Result<CoreProviderMetadata> {
         EmptyAdditionalProviderMetadata {},
     )
     .set_token_endpoint(Some(
-        TokenUrl::new(format!("{issuer}/api/oauth/token")).wrap_err("Invalid token URL")?,
+        TokenUrl::new(format!("{issuer}/api/oidc/token")).wrap_err("Invalid token URL")?,
     ))
     .set_userinfo_endpoint(Some(
-        UserInfoUrl::new(format!("{issuer}/api/oauth/userinfo"))
-            .wrap_err("Invalid userinfo URL")?,
+        UserInfoUrl::new(format!("{issuer}/api/oidc/userinfo")).wrap_err("Invalid userinfo URL")?,
     ))
     .set_scopes_supported(Some(vec![
         Scope::new("openid".to_string()),

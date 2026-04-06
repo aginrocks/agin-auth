@@ -43,7 +43,7 @@ async fn disable_pgp(
         .await?
         .wrap_err("User not found")?;
 
-    if user.auth_factors.pgp.is_none() {
+    if user.auth_factors.pgp.is_empty() {
         return Err(AxumError::bad_request(eyre::eyre!("PGP is not enabled")));
     }
 
@@ -52,7 +52,7 @@ async fn disable_pgp(
         .collection::<User>("users")
         .update_one(
             doc! { "_id": *user_id },
-            doc! { "$unset": { "auth_factors.pgp": "" } },
+            doc! { "$set": { "auth_factors.pgp": [] } },
         )
         .await?;
 

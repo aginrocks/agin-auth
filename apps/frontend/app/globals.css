@@ -5,6 +5,11 @@ html {
   scrollbar-gutter: stable;
 }
 
+:root body[data-scroll-locked] {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
