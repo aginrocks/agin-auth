@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
@@ -34,6 +34,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
     const [setupData, setSetupData] = useState<{ secret: string; qr: string } | null>(null);
     const [confirmDisable, setConfirmDisable] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const lastSubmittedCode = useRef<string | null>(null);
 
     const isEnabled = totp?.fully_enabled ?? false;
 
@@ -80,6 +81,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
             setSetupData(null);
             nameForm.reset();
             codeForm.reset();
+            lastSubmittedCode.current = null;
         } else if (isEnabled) {
             setDetailsOpen(v => !v);
         } else {
@@ -89,19 +91,25 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
 
     const code = codeForm.watch('code');
 
-    const trySubmitCode = useCallback((value: string | undefined) => {
-        if (value?.length !== 6) return;
-        confirmMutation.mutate({ body: { code: value } });
-    }, [confirmMutation]);
-
     useEffect(() => {
-        trySubmitCode(code);
-    }, [code, trySubmitCode]);
+        if (code?.length !== 6) {
+            lastSubmittedCode.current = null;
+            return;
+        }
+
+        if (confirmMutation.isPending || lastSubmittedCode.current === code) {
+            return;
+        }
+
+        lastSubmittedCode.current = code;
+        confirmMutation.mutate({ body: { code } });
+    }, [code, confirmMutation]);
 
     const closeSetupDialog = () => {
         setStep('idle');
         setSetupData(null);
         codeForm.reset();
+        lastSubmittedCode.current = null;
     };
 
     return (
