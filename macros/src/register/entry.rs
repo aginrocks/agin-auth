@@ -29,7 +29,7 @@ impl Parse for FactorEntry {
             .cloned()
             .ok_or_else(|| syn::Error::new_spanned(path.clone(), "expected a module path"))?;
 
-        Ok(FactorEntry {
+        Ok(Self {
             slug,
             path,
             last_segment,

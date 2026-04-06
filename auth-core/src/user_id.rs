@@ -36,7 +36,7 @@ pub trait IdLike:
 pub struct ClaimedUserId(i32);
 
 impl ClaimedUserId {
-    pub fn new(id: i32) -> Self {
+    pub const fn new(id: i32) -> Self {
         Self(id)
     }
 }

@@ -11,7 +11,7 @@ use crate::{
         entry::FactorEntry,
         enums::{
             definitions::{FLOW_TYPE, ROLE, SECURITY_LEVEL},
-            utils::{implement_field_match, match_factors},
+            utils::implement_field_match,
         },
     },
 };

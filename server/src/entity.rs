@@ -1,3 +1,5 @@
+#![allow(clippy::derive_partial_eq_without_eq, clippy::future_not_send)]
+
 pub mod auth_methods;
 pub mod password;
 pub mod pgp;
