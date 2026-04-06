@@ -10,6 +10,9 @@ missing_errors_doc = "allow"
 must_use_candidate = "allow"
 missing_const_for_fn = "allow"
 future_not_send = "allow"
+unwrap_in_result = "warn"
+unwrap_used = "warn"
+useless_let_if_seq = "warn"
 # Too many false positives
 option_if_let_else = "allow"
 
