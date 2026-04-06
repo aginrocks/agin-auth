@@ -15,12 +15,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { RecoveryCode } from './recovery-code';
 import { WebAuthn } from './webauthn';
 import { WebAuthnPasswordless } from './webauthn-passwordless';
+import { Pgp } from './pgp';
 
 export const formSchema = z.object({
     username: z.string().min(1, 'Username is required'),
     password: z.string().optional(),
     totp: z.string().optional(),
     recovery_code: z.string().optional(),
+    pgp_signature: z.string().optional(),
 });
 
 export type FormSchema = z.infer<typeof formSchema>;
@@ -48,6 +50,7 @@ export default function Page() {
             password: '',
             totp: '',
             recovery_code: '',
+            pgp_signature: '',
         },
     });
 
@@ -69,6 +72,7 @@ export default function Page() {
                     {screen === 'recoverycode' && <RecoveryCode />}
                     {screen === 'webauthn' && <WebAuthn />}
                     {screen === 'webauthnpasswordless' && <WebAuthnPasswordless />}
+                    {screen === 'pgp' && <Pgp />}
                 </motion.div>
             </AnimatePresence>
             <div className="text-muted-foreground text-xs absolute left-4 right-4 bottom-4 text-center">
