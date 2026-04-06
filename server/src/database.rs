@@ -1,7 +1,10 @@
+use std::time::Duration as StdDuration;
+
 use color_eyre::eyre::{Context, Result};
 use mongodb::{
-    Client, Database,
+    Client, Database, IndexModel,
     bson::{self, Bson, doc, oid::ObjectId},
+    options::IndexOptions,
 };
 use partial_struct::Partial;
 use serde::de::Deserializer;
@@ -40,27 +43,141 @@ macro_rules! database_object {
 pub async fn init_database(settings: &Settings) -> Result<Database> {
     let client = Client::with_uri_str(&settings.db.connection_string).await?;
     let database = client.database(&settings.db.database_name);
+    ensure_database_indexes(&database).await?;
 
     Ok(database)
 }
 
+async fn ensure_database_indexes(database: &Database) -> Result<()> {
+    let sessions = database.collection::<bson::Document>("sessions");
+
+    sessions
+        .create_index(
+            IndexModel::builder()
+                .keys(doc! { "user_id": 1_i32, "last_active": -1_i32 })
+                .options(
+                    IndexOptions::builder()
+                        .name(Some("sessions_user_last_active_idx".to_string()))
+                        .build(),
+                )
+                .build(),
+        )
+        .await
+        .wrap_err("Failed to create sessions_user_last_active_idx")?;
+
+    sessions
+        .create_index(
+            IndexModel::builder()
+                .keys(doc! { "public_id": 1_i32 })
+                .options(
+                    IndexOptions::builder()
+                        .name(Some("sessions_public_id_unique_idx".to_string()))
+                        .unique(true)
+                        .sparse(true)
+                        .build(),
+                )
+                .build(),
+        )
+        .await
+        .wrap_err("Failed to create sessions_public_id_unique_idx")?;
+
+    sessions
+        .create_index(
+            IndexModel::builder()
+                .keys(doc! { "last_active": 1_i32 })
+                .options(
+                    IndexOptions::builder()
+                        .name(Some("sessions_last_active_ttl_idx".to_string()))
+                        .expire_after(StdDuration::from_secs(60 * 60 * 24 * 7))
+                        .build(),
+                )
+                .build(),
+        )
+        .await
+        .wrap_err("Failed to create sessions_last_active_ttl_idx")?;
+
+    Ok(())
+}
+
 pub async fn init_session_store(
     settings: &Settings,
-) -> Result<SessionManagerLayer<RedisStore<Pool>>> {
+) -> Result<(SessionManagerLayer<RedisStore<Pool>>, Pool)> {
     let config = Config::from_url(&settings.redis.connection_string)?;
     let pool = Pool::new(config, None, None, None, 6)?;
 
     let _redis_conn = pool.connect();
     pool.wait_for_connect().await?;
 
-    let session_store = RedisStore::<Pool>::new(pool);
+    let session_store = RedisStore::<Pool>::new(pool.clone());
 
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
         .with_same_site(SameSite::Lax)
+        .with_always_save(true)
         .with_expiry(Expiry::OnInactivity(Duration::days(7)));
 
-    Ok(session_layer)
+    Ok((session_layer, pool))
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SessionRecord {
+    #[serde(rename = "_id")]
+    pub id: String,
+    #[serde(default)]
+    pub public_id: Option<String>,
+    pub user_id: ObjectId,
+    pub ip_address: String,
+    pub user_agent: String,
+    pub created_at: bson::DateTime,
+    pub last_active: bson::DateTime,
+}
+
+pub async fn record_session(
+    database: &Database,
+    session_id: &str,
+    user_id: &ObjectId,
+    ip_address: &str,
+    user_agent: &str,
+) -> AxumResult<()> {
+    let now = bson::DateTime::now();
+    database
+        .collection::<SessionRecord>("sessions")
+        .update_one(
+            doc! { "_id": session_id },
+            doc! {
+                "$set": {
+                    "user_id": user_id,
+                    "ip_address": ip_address,
+                    "user_agent": user_agent,
+                    "last_active": now,
+                },
+                "$setOnInsert": {
+                    "public_id": Uuid::new_v4().to_string(),
+                    "created_at": now,
+                }
+            },
+        )
+        .upsert(true)
+        .await
+        .wrap_err("Failed to record session")?;
+
+    database
+        .collection::<SessionRecord>("sessions")
+        .update_one(
+            doc! {
+                "_id": session_id,
+                "public_id": { "$exists": false },
+            },
+            doc! {
+                "$set": {
+                    "public_id": Uuid::new_v4().to_string(),
+                }
+            },
+        )
+        .await
+        .wrap_err("Failed to backfill public session ID")?;
+
+    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
