@@ -15,13 +15,15 @@ export function DashboardHeader({ profile, onLogout, loggingOut }: {
             <div>
                 <h1 className="text-xl font-semibold mb-0.5">Account Security</h1>
                 {profile ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <IconUser size={14} />
                         <span>{profile.display_name}</span>
                         <span className="text-muted-foreground/40">·</span>
                         <span>{profile.email}</span>
                         {!profile.email_confirmed && (
-                            <span className="text-[10px] bg-destructive/10 text-destructive rounded-full px-1.5 py-0.5">Unverified</span>
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-destructive">
+                                Unverified
+                            </span>
                         )}
                     </div>
                 ) : (

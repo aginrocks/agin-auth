@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
@@ -26,24 +26,28 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 export function PasswordRow({ isSet, onRefetch }: { isSet: boolean; onRefetch: () => void }) {
     const [open, setOpen] = useState(false);
     const [error, setError] = useState('');
-    const change = $api.useMutation('post', '/api/settings/password/change');
 
     const form = useForm<PasswordForm>({
         resolver: zodResolver(passwordSchema),
         defaultValues: { current_password: '', new_password: '', confirm_password: '' },
     });
 
-    const onSubmit = useCallback(async (data: PasswordForm) => {
-        setError('');
-        try {
-            await change.mutateAsync({ body: { current_password: data.current_password ?? '', new_password: data.new_password } });
+    const change = $api.useMutation('post', '/api/settings/password/change', {
+        onSuccess: () => {
             form.reset();
+            setError('');
             setOpen(false);
             onRefetch();
-        } catch {
+        },
+        onError: () => {
             setError('Incorrect current password or invalid new password.');
-        }
-    }, [change, form, onRefetch]);
+        },
+    });
+
+    const onSubmit = (data: PasswordForm) => {
+        setError('');
+        change.mutate({ body: { current_password: data.current_password ?? '', new_password: data.new_password } });
+    };
 
     const handleClose = (v: boolean) => {
         if (!v) { form.reset(); setError(''); }
