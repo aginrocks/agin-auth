@@ -9,15 +9,12 @@ import { Button } from '@components/ui/button';
 import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@components/ui/form';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@components/ui/input-otp';
-import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { IconDeviceMobile } from '@tabler/icons-react';
-import QRCode from 'react-qr-code';
 import { FactorRow } from './factor-row';
-import { CopyButton, ExpandForm } from './helpers';
+import { ExpandForm } from './helpers';
 import { FactorKeyItem } from './factor-key-item';
-import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogDescription as ConfirmDialogDescription, DialogFooter as ConfirmDialogFooter, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle } from '@components/ui/dialog';
+import { TotpSetupDialog } from './totp-setup-dialog';
+import { TotpDisableDialog } from './totp-disable-dialog';
 
 const nameSchema = z.object({
     display_name: z.string().min(1, 'Required').max(32),
@@ -29,7 +26,13 @@ const codeSchema = z.object({
 type NameForm = z.infer<typeof nameSchema>;
 type CodeForm = z.infer<typeof codeSchema>;
 
-export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; fully_enabled: boolean } | null | undefined; onRefetch: () => void }) {
+export function TotpRow({
+    totp,
+    onRefetch,
+}: {
+    totp: { display_name: string; fully_enabled: boolean } | null | undefined;
+    onRefetch: () => void;
+}) {
     const [step, setStep] = useState<'idle' | 'name' | 'confirm'>('idle');
     const [setupData, setSetupData] = useState<{ secret: string; qr: string } | null>(null);
     const [setupDialogOpen, setSetupDialogOpen] = useState(false);
@@ -104,7 +107,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
         } else if (step !== 'idle') {
             resetSetupState();
         } else if (isEnabled) {
-            setDetailsOpen(v => !v);
+            setDetailsOpen((v) => !v);
         } else {
             setStep('name');
         }
@@ -166,7 +169,10 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                 icon={<IconDeviceMobile />}
                 name="Authenticator App"
                 description="Time-based one-time passwords from your authenticator app."
-                tag={{ label: isEnabled ? totp?.display_name ?? 'Enabled' : 'Disabled', enabled: isEnabled }}
+                tag={{
+                    label: isEnabled ? (totp?.display_name ?? 'Enabled') : 'Disabled',
+                    enabled: isEnabled,
+                }}
                 onToggle={handleToggle}
                 open={step === 'name' || detailsOpen}
             >
@@ -175,7 +181,12 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                         <ExpandForm open={detailsOpen}>
                             <div className="pb-3 max-w-sm">
                                 <FactorKeyItem
-                                    icon={<IconDeviceMobile size={14} className="text-muted-foreground" />}
+                                    icon={
+                                        <IconDeviceMobile
+                                            size={14}
+                                            className="text-muted-foreground"
+                                        />
+                                    }
                                     name={totp?.display_name ?? 'Authenticator'}
                                     subtitle="Active"
                                     onRemove={() => {
@@ -183,7 +194,9 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                                             clearTimeout(disableDialogResetTimeoutRef.current);
                                             disableDialogResetTimeoutRef.current = null;
                                         }
-                                        setDisableDisplayName(totp?.display_name ?? 'Authenticator');
+                                        setDisableDisplayName(
+                                            totp?.display_name ?? 'Authenticator'
+                                        );
                                         setConfirmDisable(true);
                                     }}
                                 />
@@ -193,21 +206,45 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
 
                     <ExpandForm open={step === 'name'}>
                         <Form {...nameForm}>
-                            <form onSubmit={nameForm.handleSubmit(data => enable.mutate({ body: data }))} className="space-y-3 max-w-sm pb-4">
-                                <FormField control={nameForm.control} name="display_name" render={({ field }) => (
-                                    <FormItem className="space-y-1.5">
-                                        <Label className="text-xs">Authenticator name</Label>
-                                        <FormControl>
-                                            <Input {...field} placeholder="Authy, Google Authenticator…" className="h-9 text-sm" maxLength={32} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+                            <form
+                                onSubmit={nameForm.handleSubmit((data) =>
+                                    enable.mutate({ body: data })
+                                )}
+                                className="space-y-3 max-w-sm pb-4"
+                            >
+                                <FormField
+                                    control={nameForm.control}
+                                    name="display_name"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-1.5">
+                                            <Label className="text-xs">Authenticator name</Label>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    placeholder="Authy, Google Authenticator…"
+                                                    className="h-9 text-sm"
+                                                    maxLength={32}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <div className="flex gap-2">
                                     <Button size="sm" type="submit" disabled={enable.isPending}>
                                         {enable.isPending ? 'Generating…' : 'Continue'}
                                     </Button>
-                                    <Button size="sm" variant="ghost" type="button" onClick={() => { setStep('idle'); nameForm.reset(); }}>Cancel</Button>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        type="button"
+                                        onClick={() => {
+                                            setStep('idle');
+                                            nameForm.reset();
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
                                 </div>
                             </form>
                         </Form>
@@ -215,7 +252,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                 </div>
             </FactorRow>
 
-            <Dialog
+            <TotpSetupDialog
                 open={step === 'confirm' && !!setupData && setupDialogOpen}
                 onOpenChange={(open) => {
                     if (open) {
@@ -226,62 +263,14 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                         setSetupDialogOpen(true);
                         return;
                     }
-
                     closeSetupDialog();
                 }}
-            >
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Set up authenticator</DialogTitle>
-                        <DialogDescription>
-                            Scan the QR code with your authenticator app, then enter the verification code.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {setupData && (
-                        <div className="space-y-4">
-                            <div className="flex justify-center">
-                                <div className="p-3 bg-white rounded-lg">
-                                    <QRCode value={setupData.qr} size={160} />
-                                </div>
-                            </div>
-                            <div className="rounded-lg border border-border bg-muted/30 p-3">
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Secret</span>
-                                    <CopyButton text={setupData.secret} compact />
-                                </div>
-                                <code className="font-mono text-[11px] break-all text-foreground leading-relaxed">{setupData.secret}</code>
-                            </div>
+                setupData={setupData}
+                codeForm={codeForm}
+                onSubmit={(data) => confirmMutation.mutate({ body: data })}
+            />
 
-                            <Form {...codeForm}>
-                                <form onSubmit={codeForm.handleSubmit(data => confirmMutation.mutate({ body: data }))}>
-                                    <FormField control={codeForm.control} name="code" render={({ field }) => (
-                                        <FormItem className="flex flex-col items-center gap-2">
-                                            <FormControl>
-                                                <InputOTP maxLength={6} pattern={REGEXP_ONLY_DIGITS} {...field}>
-                                                    <InputOTPGroup>
-                                                        <InputOTPSlot index={0} />
-                                                        <InputOTPSlot index={1} />
-                                                        <InputOTPSlot index={2} />
-                                                    </InputOTPGroup>
-                                                    <InputOTPSeparator />
-                                                    <InputOTPGroup>
-                                                        <InputOTPSlot index={3} />
-                                                        <InputOTPSlot index={4} />
-                                                        <InputOTPSlot index={5} />
-                                                    </InputOTPGroup>
-                                                </InputOTP>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                </form>
-                            </Form>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            <ConfirmDialog
+            <TotpDisableDialog
                 open={confirmDisable}
                 onOpenChange={(open) => {
                     if (open) {
@@ -292,30 +281,14 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                         setConfirmDisable(true);
                         return;
                     }
-
                     closeDisableDialog();
                 }}
-            >
-                <ConfirmDialogContent>
-                    <ConfirmDialogHeader>
-                        <ConfirmDialogTitle>Remove authenticator</ConfirmDialogTitle>
-                        <ConfirmDialogDescription>
-                            This will remove{' '}<span className="font-medium text-foreground">{disableDisplayName || totp?.display_name}</span>{' '}from your account. You won&apos;t be able to use it for two-factor authentication until you set up a new one.
-                        </ConfirmDialogDescription>
-                    </ConfirmDialogHeader>
-                    {disable.isError && (
-                        <p className="text-xs text-destructive">Failed to remove authenticator.</p>
-                    )}
-                    <ConfirmDialogFooter>
-                        <Button variant="outline" onClick={closeDisableDialog} disabled={disable.isPending}>
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={() => disable.mutate({})} disabled={disable.isPending}>
-                            {disable.isPending ? 'Removing…' : 'Remove'}
-                        </Button>
-                    </ConfirmDialogFooter>
-                </ConfirmDialogContent>
-            </ConfirmDialog>
+                displayName={disableDisplayName || totp?.display_name || 'Authenticator'}
+                isLoading={disable.isPending}
+                isError={disable.isError}
+                onCancel={closeDisableDialog}
+                onConfirm={() => disable.mutate({})}
+            />
         </>
     );
 }

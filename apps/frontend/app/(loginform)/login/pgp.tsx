@@ -7,7 +7,7 @@ import { LoginIcon } from '@components/ui/login-icon';
 import { $api } from '@lib/providers/api';
 import { IconAlertCircle, IconArrowRight, IconKey } from '@tabler/icons-react';
 import { useSetAtom } from 'jotai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useLoginSuccess } from '@lib/hooks';
 import { FormSchema, screenAtom } from './page';
@@ -21,45 +21,37 @@ export function Pgp() {
     const username = form.watch('username');
     const { onSuccess } = useLoginSuccess();
 
-    const [challenge, setChallenge] = useState('');
-    const [challengeError, setChallengeError] = useState('');
+    const [refreshSpin, setRefreshSpin] = useState(0);
 
-    const challengeRequest = $api.useMutation('get', '/api/login/pgp/challenge', {
-        onSuccess: ({ challenge }) => {
-            setChallenge(challenge);
-            setChallengeError('');
-        },
-        onError: (e) => {
-            if (!challenge) {
-                setChallengeError('Failed to generate challenge. Try again in a moment.');
-            }
-        },
-    });
+    const challengeQuery = $api.useQuery(
+        'get',
+        '/api/login/pgp/challenge',
+        {},
+        {
+            retry: false,
+            refetchOnWindowFocus: false,
+        }
+    );
+
+    const challenge = challengeQuery.data?.challenge ?? '';
+    const challengeError = challengeQuery.isError
+        ? 'Failed to generate challenge. Try again in a moment.'
+        : '';
 
     const pgpLogin = $api.useMutation('post', '/api/login/pgp/challenge', {
         onSuccess,
-        onError: (e) => {
+        onError: () => {
             form.setError('pgp_signature', {
-                message: e?.error || 'Login failed.',
+                message: 'Login failed.',
             });
         },
     });
 
-    const challengeRequestRef = useRef(challengeRequest);
-    challengeRequestRef.current = challengeRequest;
-
-    const [refreshSpin, setRefreshSpin] = useState(0);
-
     const refreshChallenge = useCallback(() => {
         form.clearErrors('pgp_signature');
-        challengeRequestRef.current.mutate({});
+        challengeQuery.refetch();
         setRefreshSpin((s) => s + 1);
-    }, [form]);
-
-    useEffect(() => {
-        refreshChallenge();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [form, challengeQuery]);
 
     const gpgCommand = challenge ? `echo "${challenge}" | gpg --clearsign` : '';
 
@@ -97,7 +89,7 @@ export function Pgp() {
                 <ChallengeStep
                     challenge={challenge}
                     refreshChallenge={refreshChallenge}
-                    isPending={challengeRequest.isPending}
+                    isPending={challengeQuery.isFetching}
                     refreshSpin={refreshSpin}
                 />
 
@@ -107,7 +99,7 @@ export function Pgp() {
 
                 <Button
                     type="submit"
-                    disabled={!challenge || challengeRequest.isPending || pgpLogin.isPending}
+                    disabled={!challenge || challengeQuery.isFetching || pgpLogin.isPending}
                 >
                     Next <IconArrowRight />
                 </Button>

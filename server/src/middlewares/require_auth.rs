@@ -1,7 +1,13 @@
 use std::ops::Deref;
 
-use auth_core::extract_client_ip;
-use axum::{Extension, extract::Request, http::header, middleware::Next, response::Response};
+use axum::{
+    Extension,
+    extract::{FromRequestParts, Request},
+    http::header,
+    middleware::Next,
+    response::Response,
+};
+use axum_client_ip::ClientIp;
 use color_eyre::{eyre, eyre::Result};
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
@@ -56,7 +62,12 @@ pub async fn require_auth(
 
     // Record/update session in MongoDB
     if let Some(session_id) = session.id() {
-        let ip = extract_client_ip(&request, state.settings.general.trust_proxy);
+        let (mut parts, body) = request.into_parts();
+        let ip = ClientIp::from_request_parts(&mut parts, &())
+            .await
+            .map(|ClientIp(ip)| ip.to_string())
+            .unwrap_or_else(|_| "unknown".to_string());
+        request = Request::from_parts(parts, body);
         let user_agent = request
             .headers()
             .get(header::USER_AGENT)

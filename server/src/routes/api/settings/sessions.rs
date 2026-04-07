@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use tower_sessions_redis_store::fred::prelude::KeysInterface;
 use tracing::warn;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
@@ -152,7 +152,7 @@ async fn list_sessions(
     Ok(Json(SessionsResponse { sessions }))
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, IntoParams)]
 struct DeleteSessionPath {
     session_id: String,
 }
@@ -174,9 +174,7 @@ struct SessionErrorResponse {
 #[utoipa::path(
     method(delete),
     path = "/{session_id}",
-    params(
-        ("session_id" = String, Path, description = "The session ID to revoke"),
-    ),
+    params(DeleteSessionPath),
     responses(
         (status = OK, description = "Session revoked", body = DeleteSessionResponse, content_type = "application/json"),
         (status = BAD_REQUEST, description = "Cannot revoke current session", body = SessionErrorResponse, content_type = "application/json"),

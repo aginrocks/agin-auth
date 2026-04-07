@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { $api } from '@lib/providers/api';
-import { parseUserAgent, timeAgo } from '@lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Button } from '@components/ui/button';
-import { IconDevices, IconTrash, IconCircleCheckFilled } from '@tabler/icons-react';
 import { DashboardWarning, SessionsSkeleton } from '../components/dashboard-status';
+import { SessionCard } from './session-card';
 
 type SessionListItem = {
     id: string;
@@ -23,12 +21,19 @@ export default function SessionsPage() {
     const queryClient = useQueryClient();
     const router = useRouter();
     const sessionsQueryKey = ['get', '/api/settings/sessions'] as const;
-    const sessionsQuery = $api.useQuery('get', '/api/settings/sessions', {}, {
-        retry: false,
-        refetchOnWindowFocus: false,
-        staleTime: 60_000,
-    });
-    const [lastSessions, setLastSessions] = useState<SessionListItem[] | undefined>(sessionsQuery.data?.sessions);
+    const sessionsQuery = $api.useQuery(
+        'get',
+        '/api/settings/sessions',
+        {},
+        {
+            retry: false,
+            refetchOnWindowFocus: false,
+            staleTime: 60_000,
+        }
+    );
+    const [lastSessions, setLastSessions] = useState<SessionListItem[] | undefined>(
+        sessionsQuery.data?.sessions
+    );
 
     useEffect(() => {
         const err = sessionsQuery.error as unknown as { error?: string } | null;
@@ -50,23 +55,21 @@ export default function SessionsPage() {
                 (
                     current:
                         | {
-                            sessions: SessionListItem[];
-                        }
+                              sessions: SessionListItem[];
+                          }
                         | undefined
                 ) =>
                     current
                         ? {
-                            ...current,
-                            sessions: current.sessions.filter(
-                                (session) => session.id !== variables.params.path.session_id
-                            ),
-                        }
+                              ...current,
+                              sessions: current.sessions.filter(
+                                  (session) => session.id !== variables.params.path.session_id
+                              ),
+                          }
                         : current
             );
             setLastSessions((current) =>
-                current?.filter(
-                    (session) => session.id !== variables.params.path.session_id
-                )
+                current?.filter((session) => session.id !== variables.params.path.session_id)
             );
             queryClient.invalidateQueries({ queryKey: sessionsQueryKey, refetchType: 'none' });
         },
@@ -99,9 +102,7 @@ export default function SessionsPage() {
 
             {sessionsQuery.isError && !sessions && (
                 <div className="rounded-2xl border border-border bg-card px-5 py-4">
-                    <p className="text-sm text-destructive">
-                        Failed to load sessions.
-                    </p>
+                    <p className="text-sm text-destructive">Failed to load sessions.</p>
                 </div>
             )}
 
@@ -124,49 +125,15 @@ export default function SessionsPage() {
                     transition={{ duration: 0.25 }}
                 >
                     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                        {sessions.map((session, i) => {
-                            const { browser, os } = parseUserAgent(session.user_agent);
-                            return (
-                                <div
-                                    key={session.id}
-                                    className={`px-5 py-4 flex items-center gap-4 ${
-                                        i < sessions.length - 1 ? 'border-b border-border/60' : ''
-                                    }`}
-                                >
-                                    <IconDevices className="size-5 text-muted-foreground shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-medium">
-                                                {browser} on {os}
-                                            </span>
-                                            {session.current && (
-                                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
-                                                    <IconCircleCheckFilled className="size-3" />
-                                                    Current
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                            {session.ip_address}
-                                            <span className="mx-1.5 text-muted-foreground/40">·</span>
-                                            Active {timeAgo(session.last_active)}
-                                        </p>
-                                    </div>
-                                    {!session.current && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRevoke(session.id)}
-                                            disabled={revokeSession.isPending}
-                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        >
-                                            <IconTrash className="size-4" />
-                                            Revoke
-                                        </Button>
-                                    )}
-                                </div>
-                            );
-                        })}
+                        {sessions.map((session, i) => (
+                            <SessionCard
+                                key={session.id}
+                                session={session}
+                                isLast={i === sessions.length - 1}
+                                onRevoke={handleRevoke}
+                                revokeIsPending={revokeSession.isPending}
+                            />
+                        ))}
                     </div>
                 </motion.div>
             )}

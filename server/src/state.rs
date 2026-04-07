@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use fred::prelude::Pool;
 use mail::MailService;
 use mongodb::Database;
-use tower_sessions_redis_store::fred::prelude::Pool;
 use webauthn_rs::Webauthn;
 
 use crate::{oidc::OidcKeys, settings::Settings};
