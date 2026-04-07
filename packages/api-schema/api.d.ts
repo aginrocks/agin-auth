@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get applications available to the current user */
+        get: operations["get_my_applications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/factors/password/authenticate": {
         parameters: {
             query?: never;
@@ -1113,6 +1130,11 @@ export interface components {
             redirect_uris: string[];
             slug: string;
         };
+        UserApplication: {
+            icon?: string | null;
+            name: string;
+            slug: string;
+        };
         PublicAuthFactors: {
             password: components["schemas"]["PublicPasswordFactor"];
             pgp: components["schemas"]["PublicPGPFactor"][];
@@ -1553,6 +1575,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicApplication"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthorizedError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenError"];
+                };
+            };
+        };
+    };
+    get_my_applications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserApplication"][];
                 };
             };
             /** @description Unauthorized */

@@ -1,4 +1,5 @@
 mod admin;
+mod applications;
 mod confirm_email;
 mod health;
 mod login;
@@ -19,6 +20,7 @@ use crate::{middlewares::require_auth::require_auth, state::AppState};
 pub fn routes() -> OpenApiRouter<AppState> {
     let auth = OpenApiRouter::new()
         .nest("/admin", admin::routes())
+        .nest("/applications", applications::routes())
         .nest("/logout", logout::routes())
         .nest("/settings", settings::routes())
         .layer(middleware::from_fn(require_auth));
