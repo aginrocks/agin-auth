@@ -5,26 +5,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
+import { useClipboard } from '@mantine/hooks';
 
 export function CopyButton({ text }: { text: string }) {
-    const [copied, setCopied] = useState(false);
+    const clipboard = useClipboard({ timeout: 1500 });
     return (
         <Button
             variant="ghost"
             size="sm"
             className="h-auto px-2 py-1 text-xs text-muted-foreground"
-            onClick={async () => {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
-                } catch {
-                    // Clipboard API unavailable (e.g. insecure context)
-                }
-            }}
+            onClick={() => clipboard.copy(text)}
         >
-            {copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-            {copied ? 'Copied' : 'Copy'}
+            {clipboard.copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
+            {clipboard.copied ? 'Copied' : 'Copy'}
         </Button>
     );
 }

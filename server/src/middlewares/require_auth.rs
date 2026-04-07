@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use auth_core::extract_client_ip;
 use axum::{Extension, extract::Request, http::header, middleware::Next, response::Response};
 use color_eyre::{eyre, eyre::Result};
 use mongodb::bson::oid::ObjectId;
@@ -36,26 +37,6 @@ async fn get_auth_state(session: &Session) -> Result<(ObjectId, AuthState)> {
     let auth_state = auth_state.unwrap();
 
     Ok((user_id, auth_state))
-}
-
-fn extract_client_ip(request: &Request, trust_proxy: bool) -> String {
-    if trust_proxy {
-        return request
-            .headers()
-            .get("x-forwarded-for")
-            .and_then(|value| value.to_str().ok())
-            .and_then(|value| value.split(',').next_back())
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(|value| value.to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-    }
-
-    request
-        .extensions()
-        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
-        .map(|info| info.0.ip().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
 }
 
 /// Middleware that ensures the user is authenticated

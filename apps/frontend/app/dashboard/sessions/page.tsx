@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { $api } from '@lib/providers/api';
+import { parseUserAgent, timeAgo } from '@lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Button } from '@components/ui/button';
 import { IconDevices, IconTrash, IconCircleCheckFilled } from '@tabler/icons-react';
-import { DashboardWarning } from '../components/dashboard-status';
+import { DashboardWarning, SessionsSkeleton } from '../components/dashboard-status';
 
 type SessionListItem = {
     id: string;
@@ -17,41 +18,6 @@ type SessionListItem = {
     last_active: string;
     current: boolean;
 };
-
-function parseUserAgent(ua: string) {
-    if (ua === 'unknown') return { browser: 'Unknown', os: 'Unknown' };
-
-    let browser = 'Unknown';
-    let os = 'Unknown';
-
-    if (ua.includes('Firefox/')) browser = 'Firefox';
-    else if (ua.includes('Edg/')) browser = 'Edge';
-    else if (ua.includes('Chrome/')) browser = 'Chrome';
-    else if (ua.includes('Safari/')) browser = 'Safari';
-
-    if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-    else if (ua.includes('Windows')) os = 'Windows';
-    else if (ua.includes('Mac OS')) os = 'macOS';
-    else if (ua.includes('Android')) os = 'Android';
-    else if (ua.includes('Linux')) os = 'Linux';
-
-    return { browser, os };
-}
-
-function timeAgo(dateStr: string) {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMin = Math.floor(diffMs / 60000);
-    const diffHr = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHr / 24);
-
-    if (diffMin < 1) return 'just now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    if (diffHr < 24) return `${diffHr}h ago`;
-    if (diffDay < 30) return `${diffDay}d ago`;
-    return date.toLocaleDateString();
-}
 
 export default function SessionsPage() {
     const queryClient = useQueryClient();
@@ -129,22 +95,7 @@ export default function SessionsPage() {
                 </p>
             </motion.div>
 
-            {sessionsQuery.isLoading && (
-                <div className="rounded-2xl border border-border bg-card">
-                    {[...Array(3)].map((_, i) => (
-                        <div
-                            key={i}
-                            className={`px-5 py-4 flex items-center gap-4 ${i < 2 ? 'border-b border-border/60' : ''}`}
-                        >
-                            <div className="size-5 rounded bg-muted animate-pulse shrink-0" />
-                            <div className="flex-1 space-y-2">
-                                <div className="h-3.5 w-32 rounded bg-muted animate-pulse" />
-                                <div className="h-3 w-48 rounded bg-muted animate-pulse" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            {sessionsQuery.isLoading && <SessionsSkeleton />}
 
             {sessionsQuery.isError && !sessions && (
                 <div className="rounded-2xl border border-border bg-card px-5 py-4">
