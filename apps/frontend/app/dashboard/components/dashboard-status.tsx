@@ -4,9 +4,9 @@ function SkeletonCard({ rows }: { rows: number }) {
             {[...Array(rows)].map((_, i) => (
                 <div key={i} className={`px-5 py-4 flex items-center gap-4 ${i < rows - 1 ? 'border-b border-border/60' : ''}`}>
                     <div className="size-5 rounded bg-muted animate-pulse shrink-0" />
-                    <div className="flex-1 space-y-2">
-                        <div className="h-3.5 w-28 rounded bg-muted animate-pulse" />
-                        <div className="h-3 w-40 rounded bg-muted animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                        <div className="h-[19px] w-28 rounded bg-muted animate-pulse mb-0.5" />
+                        <div className="h-4 w-40 rounded bg-muted animate-pulse" />
                     </div>
                 </div>
             ))}
@@ -18,22 +18,22 @@ export function DashboardSkeleton() {
     return (
         <>
             <div className="mb-6">
-                <div className="h-4 w-12 rounded bg-muted animate-pulse mb-3" />
+                <div className="h-5 w-12 rounded bg-muted animate-pulse mb-3" />
                 <SkeletonCard rows={1} />
             </div>
             <div className="mb-6">
-                <div className="h-4 w-16 rounded bg-muted animate-pulse mb-3" />
+                <div className="h-5 w-16 rounded bg-muted animate-pulse mb-3" />
                 <SkeletonCard rows={5} />
             </div>
             <div className="mt-8">
-                <div className="h-4 w-24 rounded bg-muted/60 animate-pulse mb-3" />
+                <div className="h-5 w-24 rounded bg-muted/60 animate-pulse mb-3" />
                 <div className="rounded-2xl border border-destructive/20 bg-card">
-                    <div className="px-5 py-4 flex items-center gap-4">
-                        <div className="size-5 rounded bg-muted animate-pulse shrink-0" />
-                        <div className="flex-1 space-y-2">
-                            <div className="h-3.5 w-28 rounded bg-muted animate-pulse" />
-                            <div className="h-3 w-40 rounded bg-muted animate-pulse" />
+                    <div className="px-5 py-4 flex items-center justify-between">
+                        <div>
+                            <div className="h-5 w-28 rounded bg-muted animate-pulse" />
+                            <div className="h-4 w-48 rounded bg-muted animate-pulse" />
                         </div>
+                        <div className="h-8 w-[83px] rounded-md bg-muted animate-pulse shrink-0" />
                     </div>
                 </div>
             </div>
@@ -50,9 +50,9 @@ export function SessionsSkeleton() {
                     className={`px-5 py-4 flex items-center gap-4 ${i < 2 ? 'border-b border-border/60' : ''}`}
                 >
                     <div className="size-5 rounded bg-muted animate-pulse shrink-0" />
-                    <div className="flex-1 space-y-2">
-                        <div className="h-3.5 w-32 rounded bg-muted animate-pulse" />
-                        <div className="h-3 w-48 rounded bg-muted animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                        <div className="h-[19px] w-32 rounded bg-muted animate-pulse mb-0.5" />
+                        <div className="h-4 w-48 rounded bg-muted animate-pulse" />
                     </div>
                 </div>
             ))}
