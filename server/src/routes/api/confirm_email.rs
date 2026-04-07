@@ -33,9 +33,8 @@ pub async fn send_confirmation_email(
     email: &str,
 ) -> AxumResult<()> {
     let Some(mail) = &state.mail_service else {
-        return Err(AxumError::service_unavailable(color_eyre::eyre::eyre!(
-            "Confirmation email service is unavailable"
-        )));
+        tracing::info!(%user_id, "Mail service not configured, skipping confirmation email");
+        return Ok(());
     };
 
     let token = generate_reset_token();
