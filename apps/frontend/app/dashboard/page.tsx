@@ -78,6 +78,8 @@ export default function DashboardPage() {
                 loggingOut={logout.isPending}
             />
 
+            {!profile && !factors && (profileQuery.isLoading || factorsQuery.isLoading) && <DashboardSkeleton />}
+
             {profileQuery.isError && !profile && (
                 <div className="mb-6">
                     <DashboardWarning message="Could not load your profile details." />
@@ -104,7 +106,6 @@ export default function DashboardPage() {
                 </motion.div>
             )}
 
-            {!factors && factorsQuery.isLoading && <DashboardSkeleton />}
             {!factors && factorsQuery.isError && <DashboardError />}
 
             {factorsQuery.isError && factors && (
