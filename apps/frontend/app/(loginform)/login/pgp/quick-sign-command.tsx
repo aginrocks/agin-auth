@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { IconTerminal2, IconChevronDown } from '@tabler/icons-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useClipboard } from '@mantine/hooks';
-import { CopyButton } from './copy-button';
+import { CopyButton } from '@components/copy-button';
 
 interface QuickSignCommandProps {
     gpgCommand: string;
@@ -10,7 +9,6 @@ interface QuickSignCommandProps {
 
 export function QuickSignCommand({ gpgCommand }: QuickSignCommandProps) {
     const [showCommand, setShowCommand] = useState(false);
-    const clipboard = useClipboard({ timeout: 1500 });
 
     return (
         <div>
@@ -42,7 +40,7 @@ export function QuickSignCommand({ gpgCommand }: QuickSignCommandProps) {
                             <pre className="font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-all select-all flex-1">
                                 {gpgCommand}
                             </pre>
-                            <CopyButton onCopy={() => clipboard.copy(gpgCommand)} copied={clipboard.copied} />
+                            <CopyButton text={gpgCommand} compact />
                         </div>
                     </motion.div>
                 )}

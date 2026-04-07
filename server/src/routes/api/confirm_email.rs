@@ -33,7 +33,19 @@ pub async fn send_confirmation_email(
     email: &str,
 ) -> AxumResult<()> {
     let Some(mail) = &state.mail_service else {
-        tracing::info!(%user_id, "Mail service not configured, skipping confirmation email");
+        state
+            .database
+            .collection::<User>("users")
+            .update_one(
+                doc! { "_id": user_id },
+                doc! { "$set": { "email_confirmed": true } },
+            )
+            .await?;
+
+        tracing::info!(
+            %user_id,
+            "Mail service not configured, auto-confirming email for newly registered user"
+        );
         return Ok(());
     };
 

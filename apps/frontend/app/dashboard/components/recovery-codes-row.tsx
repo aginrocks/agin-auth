@@ -116,7 +116,7 @@ export function RecoveryCodesRow({ remaining, onRefetch }: { remaining: number; 
                             <div className="rounded-xl border border-border bg-card p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <p className="text-xs font-medium text-foreground">Recovery codes</p>
-                                    <CopyButton text={codes.join('\n')} />
+                                    <CopyButton text={codes.join('\n')} compact />
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-8 gap-y-2 px-1">
                                     {codes.map((c, i) => (
