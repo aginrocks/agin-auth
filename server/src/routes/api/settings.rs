@@ -6,6 +6,7 @@ pub mod account;
 pub mod factors;
 pub mod password;
 pub mod profile;
+pub mod sessions;
 
 pub fn routes() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
@@ -13,4 +14,5 @@ pub fn routes() -> OpenApiRouter<AppState> {
         .nest("/factors", factors::routes())
         .nest("/password", password::routes())
         .nest("/profile", profile::routes())
+        .nest("/sessions", sessions::routes())
 }

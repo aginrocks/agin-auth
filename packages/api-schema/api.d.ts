@@ -776,6 +776,46 @@ export interface paths {
         patch: operations["update_profile"];
         trace?: never;
     };
+    "/api/settings/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active sessions
+         * @description Returns all active sessions for the current user.
+         */
+        get: operations["list_sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a session
+         * @description Deletes a specific session by ID.
+         */
+        delete: operations["delete_session"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1109,6 +1149,23 @@ export interface components {
             first_name: string;
             last_name: string;
             preferred_username: string;
+        };
+        SessionItem: {
+            id: string;
+            ip_address: string;
+            user_agent: string;
+            created_at: string;
+            last_active: string;
+            current: boolean;
+        };
+        SessionsResponse: {
+            sessions: components["schemas"]["SessionItem"][];
+        };
+        DeleteSessionResponse: {
+            success: boolean;
+        };
+        SessionErrorResponse: {
+            error: string;
         };
         /** @description Public key cryptographic parameters */
         PubKeyCredParams: {
@@ -2875,6 +2932,66 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sessions list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionsResponse"];
+                };
+            };
+        };
+    };
+    delete_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteSessionResponse"];
+                };
+            };
+            /** @description Cannot revoke current session */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionErrorResponse"];
+                };
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionErrorResponse"];
+                };
             };
         };
     };

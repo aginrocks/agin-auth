@@ -27,12 +27,15 @@ interface Profile {
     display_name: string;
     first_name: string;
     last_name: string;
+    email: string;
+    email_confirmed: boolean;
 }
 
 export function ProfileRow({ profile }: { profile: Profile }) {
     const queryClient = useQueryClient();
     const [open, setOpen] = useState(false);
     const [error, setError] = useState('');
+    const profileQueryKey = ['get', '/api/settings/profile'] as const;
 
     const form = useForm<ProfileForm>({
         resolver: zodResolver(profileSchema),
@@ -44,8 +47,26 @@ export function ProfileRow({ profile }: { profile: Profile }) {
     });
 
     const save = $api.useMutation('patch', '/api/settings/profile', {
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['get', '/api/settings/profile'] });
+        onSuccess: (_, variables) => {
+            const nextDisplayName = variables.body.display_name?.trim();
+            const nextFirstName = variables.body.first_name?.trim() ?? '';
+            const nextLastName = variables.body.last_name?.trim() ?? '';
+
+            queryClient.setQueriesData(
+                { queryKey: profileQueryKey },
+                (current: Profile | undefined) =>
+                    current
+                        ? {
+                            ...current,
+                            display_name: nextDisplayName && nextDisplayName.length > 0
+                                ? nextDisplayName
+                                : current.display_name,
+                            first_name: nextFirstName,
+                            last_name: nextLastName,
+                        }
+                        : current
+            );
+            queryClient.invalidateQueries({ queryKey: profileQueryKey, refetchType: 'none' });
             setError('');
             setOpen(false);
         },

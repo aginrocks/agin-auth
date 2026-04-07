@@ -24,9 +24,21 @@ import {
 export default function DashboardPage() {
     const queryClient = useQueryClient();
     const router = useRouter();
+    const dashboardQueryOptions = {
+        retry: false,
+        refetchOnWindowFocus: false,
+        staleTime: 60_000,
+    } as const;
 
-    const profileQuery = $api.useQuery('get', '/api/settings/profile');
-    const factorsQuery = $api.useQuery('get', '/api/settings/factors');
+    const profileQuery = $api.useQuery('get', '/api/settings/profile', {}, dashboardQueryOptions);
+    const factorsQuery = $api.useQuery('get', '/api/settings/factors', {}, dashboardQueryOptions);
+
+    useEffect(() => {
+        const err = profileQuery.error as unknown as { error?: string } | null;
+        if (err?.error === 'Unauthorized') {
+            router.push('/login');
+        }
+    }, [profileQuery.error, router]);
 
     const [lastProfile, setLastProfile] = useState<typeof profileQuery.data>(profileQuery.data);
     const [lastFactors, setLastFactors] = useState<typeof factorsQuery.data>(factorsQuery.data);
@@ -59,91 +71,90 @@ export default function DashboardPage() {
     }, [logout]);
 
     return (
-        <div className="min-h-screen bg-background">
-            <div className="mx-auto max-w-2xl px-6 py-14">
-                <DashboardHeader
-                    profile={profile}
-                    onLogout={handleLogout}
-                    loggingOut={logout.isPending}
-                />
+        <>
+            <DashboardHeader
+                profile={profile}
+                onLogout={handleLogout}
+                loggingOut={logout.isPending}
+            />
 
-                {profileQuery.isError && !profile && (
-                    <div className="mb-6">
-                        <DashboardWarning message="Could not load your profile details." />
+            {!profile && !factors && (profileQuery.isLoading || factorsQuery.isLoading) && <DashboardSkeleton />}
+
+            {profileQuery.isError && !profile && (
+                <div className="mb-6">
+                    <DashboardWarning message="Could not load your profile details." />
+                </div>
+            )}
+
+            {profileQuery.isError && profile && (
+                <div className="mb-6">
+                    <DashboardWarning message="Could not refresh your profile. Showing the last loaded data." />
+                </div>
+            )}
+
+            {profile && (
+                <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="mb-6"
+                >
+                    <h2 className="text-sm font-medium text-muted-foreground mb-3">Profile</h2>
+                    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                        <ProfileRow profile={profile} />
                     </div>
-                )}
+                </motion.div>
+            )}
 
-                {profileQuery.isError && profile && (
-                    <div className="mb-6">
-                        <DashboardWarning message="Could not refresh your profile. Showing the last loaded data." />
+            {!factors && factorsQuery.isError && <DashboardError />}
+
+            {factorsQuery.isError && factors && (
+                <div className="mb-6">
+                    <DashboardWarning message="Could not refresh security settings. Showing the last loaded data." />
+                </div>
+            )}
+
+            {factors && (
+                <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                >
+                    <h2 className="text-sm font-medium text-muted-foreground mb-3">Security</h2>
+                    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                        <PasswordRow
+                            isSet={factors.password.is_set}
+                            onRefetch={refetchFactors}
+                        />
+                        <TotpRow totp={factors.totp} onRefetch={refetchFactors} />
+                        <WebAuthnRow
+                            keys={factors.webauthn}
+                            onRefetch={refetchFactors}
+                        />
+                        <PgpRow pgp={factors.pgp} onRefetch={refetchFactors} />
+                        <RecoveryCodesRow
+                            remaining={factors.recovery_codes.remaining_codes}
+                            onRefetch={refetchFactors}
+                        />
                     </div>
-                )}
+                </motion.div>
+            )}
 
-                {profile && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="mb-6"
-                    >
-                        <h2 className="text-sm font-medium text-muted-foreground mb-3">Profile</h2>
-                        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                            <ProfileRow profile={profile} />
-                        </div>
-                    </motion.div>
-                )}
-
-                {!factors && factorsQuery.isLoading && <DashboardSkeleton />}
-                {!factors && factorsQuery.isError && <DashboardError />}
-
-                {factorsQuery.isError && factors && (
-                    <div className="mb-6">
-                        <DashboardWarning message="Could not refresh security settings. Showing the last loaded data." />
+            {factors && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25, delay: 0.1 }}
+                    className="mt-8"
+                >
+                    <h2 className="text-sm font-medium text-destructive/80 mb-3">
+                        Danger Zone
+                    </h2>
+                    <div className="rounded-2xl border border-destructive/20 bg-card overflow-hidden">
+                        <DeleteAccountSection />
                     </div>
-                )}
-
-                {factors && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25 }}
-                    >
-                        <h2 className="text-sm font-medium text-muted-foreground mb-3">Security</h2>
-                        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                            <PasswordRow
-                                isSet={factors.password.is_set}
-                                onRefetch={refetchFactors}
-                            />
-                            <TotpRow totp={factors.totp} onRefetch={refetchFactors} />
-                            <WebAuthnRow
-                                keys={factors.webauthn}
-                                onRefetch={refetchFactors}
-                            />
-                            <PgpRow pgp={factors.pgp} onRefetch={refetchFactors} />
-                            <RecoveryCodesRow
-                                remaining={factors.recovery_codes.remaining_codes}
-                                onRefetch={refetchFactors}
-                            />
-                        </div>
-                    </motion.div>
-                )}
-
-                {factors && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.25, delay: 0.1 }}
-                        className="mt-8"
-                    >
-                        <h2 className="text-sm font-medium text-destructive/80 mb-3">
-                            Danger Zone
-                        </h2>
-                        <div className="rounded-2xl border border-destructive/20 bg-card overflow-hidden">
-                            <DeleteAccountSection />
-                        </div>
-                    </motion.div>
-                )}
-            </div>
-        </div>
+                </motion.div>
+            )}
+        </>
     );
 }

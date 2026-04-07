@@ -33,9 +33,20 @@ pub async fn send_confirmation_email(
     email: &str,
 ) -> AxumResult<()> {
     let Some(mail) = &state.mail_service else {
-        return Err(AxumError::service_unavailable(color_eyre::eyre::eyre!(
-            "Confirmation email service is unavailable"
-        )));
+        state
+            .database
+            .collection::<User>("users")
+            .update_one(
+                doc! { "_id": user_id },
+                doc! { "$set": { "email_confirmed": true } },
+            )
+            .await?;
+
+        tracing::info!(
+            %user_id,
+            "Mail service not configured, auto-confirming email for newly registered user"
+        );
+        return Ok(());
     };
 
     let token = generate_reset_token();

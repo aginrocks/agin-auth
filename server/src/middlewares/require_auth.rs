@@ -1,15 +1,18 @@
 use std::ops::Deref;
 
-use axum::{extract::Request, middleware::Next, response::Response};
+use axum::{Extension, extract::Request, http::header, middleware::Next, response::Response};
+use axum_client_ip::ClientIp;
 use color_eyre::{eyre, eyre::Result};
-use mongodb::bson::{doc, oid::ObjectId};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 use utoipa::ToSchema;
 
 use crate::{
     axum_error::{AxumError, AxumResult},
+    database::record_session,
     routes::api::AuthState,
+    state::AppState,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -38,6 +41,8 @@ async fn get_auth_state(session: &Session) -> Result<(ObjectId, AuthState)> {
 
 /// Middleware that ensures the user is authenticated
 pub async fn require_auth(
+    Extension(state): Extension<AppState>,
+    ClientIp(ip): ClientIp,
     session: Session,
     mut request: Request,
     next: Next,
@@ -48,6 +53,29 @@ pub async fn require_auth(
 
     if auth_state != AuthState::Authenticated {
         return Err(AxumError::unauthorized(eyre::eyre!("Unauthorized")));
+    }
+
+    // Record/update session in MongoDB
+    if let Some(session_id) = session.id() {
+        let user_agent = request
+            .headers()
+            .get(header::USER_AGENT)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let db = state.database.clone();
+        if let Err(e) = record_session(
+            &db,
+            &session_id.to_string(),
+            &user_id,
+            &ip.to_string(),
+            &user_agent,
+        )
+        .await
+        {
+            tracing::warn!(error = ?e, "Failed to record session");
+        }
     }
 
     request.extensions_mut().insert(UserId(user_id));

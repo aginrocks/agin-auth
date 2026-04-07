@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use fred::prelude::Pool;
 use mail::MailService;
 use mongodb::Database;
 use webauthn_rs::Webauthn;
@@ -13,4 +14,5 @@ pub struct AppState {
     pub webauthn: Arc<Webauthn>,
     pub mail_service: Option<Arc<MailService>>,
     pub oidc_keys: Arc<OidcKeys>,
+    pub redis_pool: Pool,
 }

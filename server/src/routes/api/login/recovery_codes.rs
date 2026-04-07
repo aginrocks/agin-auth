@@ -59,13 +59,18 @@ async fn login_with_recovery_code(
 
     let code_hash = verify_recovery_code(body.code, user.auth_factors.recovery_codes)?;
 
-    state
+    let update_result = state
         .database
         .collection::<User>("users")
-        .find_one_and_update(
+        .update_one(
             doc! {
                 "_id": *user_id,
-                "auth_factors.recovery_codes.code_hash": code_hash
+                "auth_factors.recovery_codes": {
+                    "$elemMatch": {
+                        "code_hash": &code_hash,
+                        "used": false
+                    }
+                }
             },
             doc! {
                 "$set": {
@@ -75,7 +80,13 @@ async fn login_with_recovery_code(
         )
         .await?;
 
-    set_recent_factor(&state.database, &user_id, SecondFactor::Totp.into()).await?;
+    if update_result.modified_count == 0 {
+        return Err(AxumError::unauthorized(eyre::eyre!(
+            "Recovery code already used"
+        )));
+    }
+
+    set_recent_factor(&state.database, &user_id, SecondFactor::RecoveryCode.into()).await?;
 
     session
         .insert("auth_state", AuthState::Authenticated)

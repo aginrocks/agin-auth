@@ -25,22 +25,26 @@ pub fn routes() -> OpenApiRouter<AppState> {
         .nest("/settings", settings::routes())
         .layer(middleware::from_fn(require_auth));
 
-    // Global rate limit: 5 burst, 1 replenish per 2s per IP
-    let rate_limit_conf = GovernorConfigBuilder::default()
+    // Public auth endpoints are rate-limited, but authenticated settings pages
+    // must stay responsive because the dashboard fans out several requests.
+    let public_rate_limit_conf = GovernorConfigBuilder::default()
         .per_second(2)
         .burst_size(5)
         .finish()
         .unwrap();
 
-    let public = OpenApiRouter::new()
+    let rate_limited_public = OpenApiRouter::new()
         .nest("/confirm-email", confirm_email::routes())
-        .nest("/health", health::routes())
         .nest("/login", login::routes())
         .nest("/password-reset", password_reset::routes())
-        .nest("/register", register::routes());
+        .nest("/register", register::routes())
+        .layer(GovernorLayer::new(public_rate_limit_conf));
+
+    let public = OpenApiRouter::new()
+        .nest("/health", health::routes())
+        .merge(rate_limited_public);
 
     auth.merge(public)
-        .layer(GovernorLayer::new(rate_limit_conf))
 }
 
 #[derive(Clone, Deserialize, Serialize, Eq, PartialEq, Debug, Display)]
