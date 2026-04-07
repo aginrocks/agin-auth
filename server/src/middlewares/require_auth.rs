@@ -1,12 +1,6 @@
 use std::ops::Deref;
 
-use axum::{
-    Extension,
-    extract::{FromRequestParts, Request},
-    http::header,
-    middleware::Next,
-    response::Response,
-};
+use axum::{Extension, extract::Request, http::header, middleware::Next, response::Response};
 use axum_client_ip::ClientIp;
 use color_eyre::{eyre, eyre::Result};
 use mongodb::bson::oid::ObjectId;
@@ -48,6 +42,7 @@ async fn get_auth_state(session: &Session) -> Result<(ObjectId, AuthState)> {
 /// Middleware that ensures the user is authenticated
 pub async fn require_auth(
     Extension(state): Extension<AppState>,
+    ClientIp(ip): ClientIp,
     session: Session,
     mut request: Request,
     next: Next,
@@ -62,12 +57,6 @@ pub async fn require_auth(
 
     // Record/update session in MongoDB
     if let Some(session_id) = session.id() {
-        let (mut parts, body) = request.into_parts();
-        let ip = ClientIp::from_request_parts(&mut parts, &())
-            .await
-            .map(|ClientIp(ip)| ip.to_string())
-            .unwrap_or_else(|_| "unknown".to_string());
-        request = Request::from_parts(parts, body);
         let user_agent = request
             .headers()
             .get(header::USER_AGENT)
@@ -76,9 +65,15 @@ pub async fn require_auth(
             .to_string();
 
         let db = state.database.clone();
-        let sid = session_id.to_string();
-        let uid = user_id;
-        if let Err(e) = record_session(&db, &sid, &uid, &ip, &user_agent).await {
+        if let Err(e) = record_session(
+            &db,
+            &session_id.to_string(),
+            &user_id,
+            &ip.to_string(),
+            &user_agent,
+        )
+        .await
+        {
             tracing::warn!(error = ?e, "Failed to record session");
         }
     }
