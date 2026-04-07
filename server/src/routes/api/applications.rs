@@ -1,6 +1,6 @@
 use axum::{Extension, Json};
 use futures::TryStreamExt;
-use mongodb::bson::{doc, oid::ObjectId};
+use mongodb::bson::doc;
 use serde::Serialize;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -44,11 +44,11 @@ async fn get_my_applications(
         .find_one(doc! { "_id": *user_id })
         .await?;
 
-    let user_groups: Vec<ObjectId> = user.map(|u| u.groups).unwrap_or_default();
+    let user_groups = user.map(|u| u.groups).unwrap_or_default();
 
     let apps: Vec<Application> = state
         .database
-        .collection::<Application>("applications")
+        .collection("applications")
         .find(doc! {})
         .await?
         .try_collect()

@@ -4,9 +4,17 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { $api } from '@lib/providers/api';
-import { IconSettings, IconLayoutGrid, IconLogout, IconArrowRight } from '@tabler/icons-react';
-import { Button } from '@components/ui/button';
+import { IconLayoutGrid, IconSettings, IconLogout, IconChevronDown } from '@tabler/icons-react';
 import Link from 'next/link';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@components/ui/dropdown-menu';
+import { Button } from '@components/ui/button';
 
 function AppCard({ name, icon }: { name: string; icon?: string | null }) {
     return (
@@ -88,29 +96,49 @@ export default function HomePage() {
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold">
-                                Welcome back, {profile.display_name}
-                            </h1>
-                            <p className="text-sm text-muted-foreground mt-1">{profile.email}</p>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => logoutMutation.mutate({})}
-                            disabled={logoutMutation.isPending}
-                            className="text-muted-foreground"
-                        >
-                            <IconLogout className="size-4" />
-                            Sign out
-                        </Button>
+                        <h1 className="text-2xl font-semibold">Applications</h1>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="gap-2">
+                                    <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                        <span className="text-xs font-semibold text-primary">
+                                            {profile.display_name.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <span className="max-w-[120px] truncate">{profile.display_name}</span>
+                                    <IconChevronDown className="size-4 text-muted-foreground" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuLabel className="font-normal">
+                                    <p className="text-sm font-medium">{profile.display_name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                                        <IconSettings className="size-4" />
+                                        Account Settings
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    disabled={logoutMutation.isPending}
+                                    onClick={() => logoutMutation.mutate({})}
+                                >
+                                    <IconLogout className="size-4" />
+                                    Log out
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     {/* Applications */}
                     <div>
                         <div className="flex items-center gap-2 mb-4">
                             <IconLayoutGrid className="size-5 text-muted-foreground" />
-                            <h2 className="text-lg font-medium">Applications</h2>
+                            <h2 className="text-lg font-medium">Your applications</h2>
                         </div>
                         {apps.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -127,24 +155,6 @@ export default function HomePage() {
                             </div>
                         )}
                     </div>
-
-                    {/* Account Settings Card */}
-                    <Link href="/dashboard" className="block">
-                        <div className="rounded-xl border border-border bg-card p-5 hover:bg-accent/50 transition-colors flex items-center justify-between group">
-                            <div className="flex items-center gap-3">
-                                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <IconSettings className="size-5 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium">Account Settings</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        Security, sessions, and profile
-                                    </p>
-                                </div>
-                            </div>
-                            <IconArrowRight className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-                        </div>
-                    </Link>
                 </motion.div>
             </div>
         </div>
