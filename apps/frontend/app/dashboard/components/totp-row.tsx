@@ -247,7 +247,7 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                             <div className="rounded-lg border border-border bg-muted/30 p-3">
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Secret</span>
-                                    <CopyButton text={setupData.secret} />
+                                    <CopyButton text={setupData.secret} compact />
                                 </div>
                                 <code className="font-mono text-[11px] break-all text-foreground leading-relaxed">{setupData.secret}</code>
                             </div>
@@ -276,10 +276,6 @@ export function TotpRow({ totp, onRefetch }: { totp: { display_name: string; ful
                                     )} />
                                 </form>
                             </Form>
-
-                            {confirmMutation.isPending && (
-                                <p className="text-xs text-muted-foreground text-center">Verifying…</p>
-                            )}
                         </div>
                     )}
                 </DialogContent>

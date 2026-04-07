@@ -2,25 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconCheck, IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { Input } from '@components/ui/input';
-import { Button } from '@components/ui/button';
-import { useClipboard } from '@mantine/hooks';
 
-export function CopyButton({ text }: { text: string }) {
-    const clipboard = useClipboard({ timeout: 1500 });
-    return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto px-2 py-1 text-xs text-muted-foreground"
-            onClick={() => clipboard.copy(text)}
-        >
-            {clipboard.copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
-            {clipboard.copied ? 'Copied' : 'Copy'}
-        </Button>
-    );
-}
+export { CopyButton } from '@components/copy-button';
 
 export function ErrorMsg({ msg }: { msg: string }) {
     if (!msg) return null;

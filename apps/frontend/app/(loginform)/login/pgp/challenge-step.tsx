@@ -1,7 +1,6 @@
 import { IconRefresh } from '@tabler/icons-react';
 import { motion } from 'motion/react';
-import { useClipboard } from '@mantine/hooks';
-import { CopyButton } from './copy-button';
+import { CopyButton } from '@components/copy-button';
 
 interface ChallengeStepProps {
     challenge: string;
@@ -11,8 +10,6 @@ interface ChallengeStepProps {
 }
 
 export function ChallengeStep({ challenge, refreshChallenge, isPending, refreshSpin }: ChallengeStepProps) {
-    const clipboard = useClipboard({ timeout: 1500 });
-
     return (
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -21,7 +18,7 @@ export function ChallengeStep({ challenge, refreshChallenge, isPending, refreshS
                     Copy the challenge
                 </label>
                 <div className="flex items-center gap-2">
-                    <CopyButton onCopy={() => clipboard.copy(challenge)} copied={clipboard.copied} />
+                    <CopyButton text={challenge} compact />
                     <button
                         type="button"
                         onClick={refreshChallenge}
