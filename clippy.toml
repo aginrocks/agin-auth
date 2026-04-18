@@ -1,1 +1,1 @@
-doc-valid-idents = ["WebAuthn", "SeaORM", ".."]
+doc-valid-idents = ["WebAuthn", "SeaORM", "PoC", ".."]

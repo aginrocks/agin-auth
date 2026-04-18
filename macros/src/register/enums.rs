@@ -10,7 +10,7 @@ use crate::{
     register::{
         entry::FactorEntry,
         enums::{
-            definitions::{FLOW_TYPE, ROLE, SECURITY_LEVEL},
+            definitions::{FLOW_TYPE, ROLE, SECURITY_LEVEL, SLUG},
             utils::implement_field_match,
         },
     },
@@ -58,6 +58,7 @@ pub fn factor_name(factor_list: &FactorList) -> TokenStream {
         let variant_name = &last_segment.ident;
         enum_variants.extend(quote! {
             #[serde(rename = #slug)]
+            #[strum(serialize = #slug)]
             #variant_name,
         });
     }
@@ -66,7 +67,7 @@ pub fn factor_name(factor_list: &FactorList) -> TokenStream {
 
     // TODO: Add `ToFactorName` trait and autoamtically implement it for factors
     output.extend(quote! {
-        #[derive(Clone, Copy, PartialEq, Eq, Debug, ::serde::Serialize, ::serde::Deserialize)]
+        #[derive(Clone, Copy, PartialEq, Eq, Debug, ::serde::Serialize, ::serde::Deserialize, ::strum::EnumIter, ::strum::Display)]
         pub enum #factor_name_ty {
             #enum_variants
         }
@@ -77,6 +78,13 @@ pub fn factor_name(factor_list: &FactorList) -> TokenStream {
         &[&FLOW_TYPE, &SECURITY_LEVEL, &ROLE],
         &factor_name_ty,
         &syn::parse_str("::auth_core::FactorMetadataDynamic").expect("valid path"),
+    ));
+
+    output.extend(implement_field_match(
+        factor_list,
+        &[&SLUG],
+        &factor_name_ty,
+        &syn::parse_str("::auth_core::FactorSlugDynamic").expect("valid path"),
     ));
 
     output

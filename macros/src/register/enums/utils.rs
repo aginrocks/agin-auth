@@ -33,7 +33,7 @@ pub fn implement_field_match(
         .iter()
         .map(|field| {
             let method_name = format_ident!("{}", field.method_name);
-            let method_type: Path =
+            let method_type: Type =
                 syn::parse_str(field.field_type).expect("hardcoded types should parse");
             let match_arms = match_factors(factor_list, field);
 
